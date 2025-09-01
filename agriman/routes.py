@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request
-from agriman.functions.symvasi import symvasi
+from agriman.functions.symvasi import get_symvasi
 
 # Create the router
 router = APIRouter (
@@ -18,4 +18,4 @@ async def symvasi(request: Request):
   application_id = body.get('application_id')
 
   # Call the function to create and return the symvasi .docx
-  return symvasi(application_id)
+  return get_symvasi(application_id)

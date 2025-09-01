@@ -2,7 +2,7 @@ from docx import Document
 from io import BytesIO
 from fastapi.responses import StreamingResponse
 
-def symvasi(application_id):
+def get_symvasi(application_id):
   
   # Create a sample document
   doc = Document()
