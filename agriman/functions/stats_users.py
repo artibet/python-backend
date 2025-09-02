@@ -7,6 +7,7 @@ from openpyxl import load_workbook
 from sqlalchemy import create_engine
 from functools import reduce
 import numpy as np
+import json
 
 def find_parcel_cost(value, parcel_costs):
   for i in range(len(parcel_costs)):
@@ -16,7 +17,7 @@ def find_parcel_cost(value, parcel_costs):
 
 def compute_cost(row, parcel_costs):
     # βασικό κόστος από τη συνάρτηση
-    cost = find_parcel_cost(row['num_stables'], parcel_costs)
+    cost = find_parcel_cost(row['num_parcels'], parcel_costs)
     
     # +10 αν num_stables > 0
     if row['num_stables'] > 0:
@@ -109,6 +110,7 @@ def get_stats_users(period_id):
 # Κάνεις merge με outer join πάνω στο 'afm'
   df_final = reduce(lambda left, right: pd.merge(left, right, on="afm", how="outer"), dfs)
 
+  df_final = df_final.fillna(0)
 
 ## Εφαρμογή στο df
   df_final['final_cost'] = df_final.apply(lambda row: compute_cost(row, parcel_costs), axis=1)
@@ -131,7 +133,10 @@ def get_stats_users(period_id):
       .reset_index()
   )
 
-  stats = grouped.to_json(orient="records", force_ascii=False, indent=4)
+  stats = grouped.to_json(orient="records", force_ascii=False)
+
+  # Μετατροπή σε Python object (λίστα από dicts)
+  stats = json.loads(stats)
 
 ##  
 ##  # Create a sample stats array of dictionaries 
