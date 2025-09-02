@@ -103,6 +103,13 @@ def get_stats_users(period_id):
   cols=['from_parcels','to_parcels','cost']
   parcel_costs = df5[cols].values.tolist()
 
+# Βάζεις όλα τα df σε λίστα
+  dfs = [df1, df2, df3, df4]
+
+# Κάνεις merge με outer join πάνω στο 'afm'
+  df_final = reduce(lambda left, right: pd.merge(left, right, on="afm", how="outer"), dfs)
+
+
 ## Εφαρμογή στο df
   df_final['final_cost'] = df_final.apply(lambda row: compute_cost(row, parcel_costs), axis=1)
 
