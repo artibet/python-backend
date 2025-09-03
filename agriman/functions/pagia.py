@@ -7,7 +7,7 @@ from datetime import date
 from docxtpl import DocxTemplate
 from agriman.database import get_engine
 
-def get_pagia(application_id):
+def get_pagia(customer_id):
 
   engine = get_engine()
 
@@ -29,6 +29,6 @@ def get_pagia(application_id):
     buffer,
     media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     headers={
-       "Content-Disposition": f"attachment; filename=pagia_{application_id}.docx"
+       "Content-Disposition": f"attachment; filename=pagia_{customer_id}.docx"
     }
   )

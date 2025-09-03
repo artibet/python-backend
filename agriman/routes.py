@@ -43,7 +43,7 @@ async def symvasi(request: Request):
   
   # get application_id from request
   body = await request.json()
-  application_id = body.get('application_id')
+  customer_id = body.get('customer_id')
 
   # Call the function to create and return the pagia.docx
-  return get_pagia(application_id)
+  return get_pagia(customer_id)
