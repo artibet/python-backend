@@ -4,10 +4,8 @@ python-docx
 openpyxl
 sqlalchemy
 numpy
-mysql-connector-python
 docxtpl
 pandas
 pymysql
-mariadb
 python-dotenv
 
