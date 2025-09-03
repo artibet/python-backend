@@ -6,14 +6,16 @@ import pandas as pd
 from openpyxl import load_workbook
 from sqlalchemy import create_engine
 from functools import reduce
+from agriman.database import get_engine
 import numpy as np
 import json
+
 
 def find_parcel_cost(value, parcel_costs):
   for i in range(len(parcel_costs)):
     if value >= parcel_costs[i][0] and value <= parcel_costs[i][1]:
       return(parcel_costs[i][2])
-      break
+    return 0
 
 def compute_cost(row, parcel_costs):
     # βασικό κόστος από τη συνάρτηση
@@ -31,11 +33,9 @@ def compute_cost(row, parcel_costs):
 
 
 def get_stats_users(period_id):
-  host="localhost"      # IP της βάσης στο δίκτυο
-  user="root"
-  password="Pa$$w0rdBL11"
-  database="agriman"
-  engine = create_engine(f"mysql+mysqlconnector://{user}:{password}@{host}/{database}")
+
+  engine = get_engine()
+  
   query1 = f"""
   SELECT
     applications.afm,
@@ -137,39 +137,6 @@ def get_stats_users(period_id):
 
   # Μετατροπή σε Python object (λίστα από dicts)
   stats = json.loads(stats)
-
-##  
-##  # Create a sample stats array of dictionaries 
-##  stats = [
-##    {
-##      'book_number': 100,
-##      'afm_count': 131,
-##      'proxeires': 130,
-##      'oristikes': 1,
-##      'parcel_count': 2730,
-##      'cattles': 716,
-##      'animals_total': 1466
-##    },
-##    {
-##      'book_number': 1014,
-##      'afm_count': 42,
-##      'proxeires': 42,
-##      'oristikes': 0,
-##      'parcel_count': 579,
-##      'cattles': 0,
-##      'animals_total': 100
-##    },
-##    {
-##      'book_number': 104,
-##      'afm_count': 312,
-##      'proxeires': 308,
-##      'oristikes': 4,
-##      'parcel_count': 6254,
-##      'cattles': 2499,
-##      'animals_total': 33212
-##    },
-##    
-##  ]
 
   # Return stats as json 
   return stats

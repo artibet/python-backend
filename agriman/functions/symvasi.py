@@ -2,17 +2,14 @@ from docx import Document
 from io import BytesIO
 from fastapi.responses import StreamingResponse
 
-from sqlalchemy import create_engine
 import pandas as pd
 from datetime import date
 from docxtpl import DocxTemplate
+from agriman.database import get_engine
 
 def get_symvasi(application_id):
-  host="localhost"      # IP της βάσης στο δίκτυο
-  user="root"
-  password="Pa$$w0rdBL11"
-  database="agriman"
-  engine = create_engine(f"mysql+mysqlconnector://{user}:{password}@{host}/{database}")
+
+  engine = get_engine()
 
   query = f"""
   SELECT
