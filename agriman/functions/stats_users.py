@@ -15,7 +15,7 @@ def find_parcel_cost(value, parcel_costs):
   for i in range(len(parcel_costs)):
     if value >= parcel_costs[i][0] and value <= parcel_costs[i][1]:
       return(parcel_costs[i][2])
-  # return 0
+  return 0
 
 def compute_cost(row, parcel_costs):
     # βασικό κόστος από τη συνάρτηση
