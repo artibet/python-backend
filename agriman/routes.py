@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request
 from agriman.functions.symvasi import get_symvasi
 from agriman.functions.stats_users import get_stats_users
 from agriman.functions.pagia import get_pagia
+from agriman.functions.economcs import get_economics
 
 # Create the router
 router = APIRouter (
@@ -48,3 +49,16 @@ async def symvasi(request: Request):
 
   # Call the function to create and return the pagia.docx
   return get_pagia(customer_id, period_id)
+
+# -----------------------------------------------------------------------------
+# economics.docx
+# -----------------------------------------------------------------------------
+@router.post('/economics')
+async def symvasi(request: Request):
+  
+  # get application_id from request
+  body = await request.json()
+  application_id = body.get('application_id')
+
+  # Call the function to create and return the economics.docx
+  return get_economics(application_id)
