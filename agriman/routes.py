@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 from agriman.functions.symvasi import get_symvasi
 from agriman.functions.stats_users import get_stats_users
 from agriman.functions.pagia import get_pagia
-from agriman.functions.economcs import get_economics
+from agriman.functions.economics import get_economics
 
 # Create the router
 router = APIRouter (
