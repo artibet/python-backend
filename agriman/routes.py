@@ -44,6 +44,7 @@ async def symvasi(request: Request):
   # get application_id from request
   body = await request.json()
   customer_id = body.get('customer_id')
+  period_id = body.get('period_id')
 
   # Call the function to create and return the pagia.docx
-  return get_pagia(customer_id)
+  return get_pagia(customer_id, period_id)

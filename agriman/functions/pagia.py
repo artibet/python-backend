@@ -7,7 +7,7 @@ from datetime import date
 from docxtpl import DocxTemplate
 from agriman.database import get_engine
 
-def get_pagia(customer_id):
+def get_pagia(customer_id, period_id):
 
   engine = get_engine()
 
@@ -26,7 +26,7 @@ def get_pagia(customer_id):
   FROM applications
   JOIN customers ON customers.afm = applications.afm
   JOIN banks ON banks.id = applications.bank_id
-  WHERE applications.year = '2025' AND
+  WHERE applications.period_id = {period_id} AND
         customers.id = {customer_id}
   """
   df=pd.read_sql(query, con=engine)
