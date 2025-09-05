@@ -8,9 +8,11 @@ from docxtpl import DocxTemplate
 from agriman.database import get_engine
 
 def get_economics(application_id):
-  pass
+  engine = get_engine()
 
-  # engine = get_engine()
+  doc = Document()
+  doc.add_heading('ΥΠΟ ΚΑΤΑΣΚΕΥΗ')
+  doc.add_paragraph('Το έγγραφο της οικονομικής ανάλυσης θα είναι διαθέσιμο σύντομα!')
 
   # query = f"""
   # SELECT
@@ -33,16 +35,16 @@ def get_economics(application_id):
   # }
   # doc.render(context)
 
-  # # Save in memory
-  # buffer = BytesIO()
-  # doc.save(buffer)
-  # buffer.seek(0)
+  # Save in memory
+  buffer = BytesIO()
+  doc.save(buffer)
+  buffer.seek(0)
 
-  # # return as a downloadable file
-  # return StreamingResponse(
-  #   buffer,
-  #   media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  #   headers={
-  #      "Content-Disposition": f"attachment; filename=symvasi_{application_id}.docx"
-  #   }
-  # )
+  # return as a downloadable file
+  return StreamingResponse(
+    buffer,
+    media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    headers={
+       "Content-Disposition": f"attachment; filename=economics_{application_id}.docx"
+    }
+  )
