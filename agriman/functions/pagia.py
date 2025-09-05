@@ -22,6 +22,8 @@ def get_pagia(customer_id, period_id):
     applications.mobil,
     applications.year,
     applications.iban,
+    applications.tk,
+    applications.lkkoi_b2_description,
     banks.code AS bankscode
   FROM applications
   JOIN customers ON customers.afm = applications.afm
@@ -31,14 +33,23 @@ def get_pagia(customer_id, period_id):
   """
   df=pd.read_sql(query, con=engine)
   
-##  if 
-  doc = DocxTemplate("./agriman/templates/pagiaTP.docx")
+  if bankscode = '017': ##ΤΡΑΠΕΖΑ ΠΕΙΡΑΙΩΣ Α.Ε. (017)
+    doc = DocxTemplate("./agriman/templates/pagiaTP.docx")
+  elif bankscode = '011': ##ΕΘΝΙΚΗ ΤΡΑΠΕΖΑ ΤΗΣ ΕΛΛΑΔΟΣ Α.Ε. (011)
+    doc = DocxTemplate("./agriman/templates/pagiaNBG.docx")
+  else:
+    doc = Document()
+    doc.add_heading('ΠΡΟΣΟΧΗ', level=0)
+    doc.add_paragraph('Ο πελάτης δεν διαθέτει τραπεζικό λογαριασμό είτε στην ΤΡΑΠΕΖΑ ΠΕΙΡΑΙΩΣ Α.Ε. είτε ΕΘΝΙΚΗ ΤΡΑΠΕΖΑ ΤΗΣ ΕΛΛΑΔΟΣ Α.Ε. ή δεν έχει δηλώσει τραπεζικό λογαριασμό')
+  
   context ={
     'firstname' : df.loc[0,'firstname'],
     'lastname' : df.loc[0,'lastname'],
     'fathername' : df.loc[0,'fathername'],
     'afm' : df.loc[0,'afm'],
     'idno' : df.loc[0,'idno'],
+    'tk' : df.loc[0,'tk'],
+    'lkkoi_b2_description' : df.loc[0,'lkkoi_b2_description'],
     'phone' : df.loc[0,'phone'],
     'mobil' : df.loc[0,'mobil'],
     'iban' : df.loc[0,'iban'],
@@ -48,25 +59,10 @@ def get_pagia(customer_id, period_id):
   }
   doc.render(context)
 
-
-
-
-
-
-
-  # Remove this temporary template
-##  doc = Document()
-##  doc.add_heading('ΥΠΟ ΚΑΤΑΣΚΕΥΗ', level=0)
-##  doc.add_paragraph('Το πρότυπο της πάγιας εντολής θα είναι διαθέσιμο σύντομα...')
   buffer = BytesIO()
   doc.save(buffer)
   buffer.seek(0)
 
-  # Continue here.....
-
-
-
-  # Return the parsed pagia.docx (see symvasi.py)
   # return as a downloadable file
   return StreamingResponse(
     buffer,
