@@ -33,9 +33,9 @@ def get_pagia(customer_id, period_id):
   """
   df=pd.read_sql(query, con=engine)
   
-  if bankscode = '017': ##ΤΡΑΠΕΖΑ ΠΕΙΡΑΙΩΣ Α.Ε. (017)
+  if df.loc[0,'bankscode'] == '017': ##ΤΡΑΠΕΖΑ ΠΕΙΡΑΙΩΣ Α.Ε. (017)
     doc = DocxTemplate("./agriman/templates/pagiaTP.docx")
-  elif bankscode = '011': ##ΕΘΝΙΚΗ ΤΡΑΠΕΖΑ ΤΗΣ ΕΛΛΑΔΟΣ Α.Ε. (011)
+  elif df.loc[0,'bankscode'] == '011': ##ΕΘΝΙΚΗ ΤΡΑΠΕΖΑ ΤΗΣ ΕΛΛΑΔΟΣ Α.Ε. (011)
     doc = DocxTemplate("./agriman/templates/pagiaNBG.docx")
   else:
     doc = Document()
