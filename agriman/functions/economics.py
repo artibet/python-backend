@@ -321,7 +321,7 @@ def liters(id_key, status):
     if status==0:
         query = f"""
         SELECT
-            SUM(liters)
+            SUM(liters) AS liters
         FROM v_diesel 
         JOIN applications ON applications.id =  v_diesel.application_id 
         WHERE applications.id = '{id_key}'
@@ -331,7 +331,7 @@ def liters(id_key, status):
         SELECT
             variety_id, 
             variety_descr, 
-            sum(liters)
+            sum(liters) AS liters
         FROM v_diesel 
         JOIN applications ON applications.id =  v_diesel.application_id 
         WHERE applications.id = '{id_key}'
@@ -521,7 +521,7 @@ def get_economics(application_id):
       'measures': measures,
       'support': support,
 
-      'liters': df8
+      'liters': f"{float(df8.loc[0,"liters"]):.2f}"
   }
 
   doc = DocxTemplate("./agriman/templates/economics.docx")
