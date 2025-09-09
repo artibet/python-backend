@@ -521,7 +521,7 @@ def get_economics(application_id):
       'measures': measures,
       'support': support,
 
-      'liters': f"{float(df8.loc[0,"liters"]):.2f}"
+      'liters': df8.loc[0,"liters"]
   }
 
   doc = DocxTemplate("./agriman/templates/economics.docx")
