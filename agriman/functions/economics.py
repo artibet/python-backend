@@ -333,7 +333,6 @@ def liters(id_key, status):
             variety_descr, 
             sum(liters) AS liters
         FROM v_diesel 
-        JOIN applications ON applications.id =  v_diesel.application_id 
         WHERE applications.id = '{id_key}'
         GROUP BY variety_id, variety_descr
         """
