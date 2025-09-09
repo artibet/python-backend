@@ -1,4 +1,3 @@
-from docx import Document
 from io import BytesIO
 from fastapi.responses import StreamingResponse
 from babel.numbers import format_currency
@@ -9,6 +8,10 @@ from docxtpl import DocxTemplate
 from agriman.database import get_engine
 
 engine = get_engine()
+
+def eur_gr(n):
+  s = f"{float(n):,.2f} €"
+  return s.replace(",", "§").replace(".", ",").replace("§", ".")
 
 def fun_details(id_key):
 	#### SQL ερώτημα
@@ -21,10 +24,8 @@ def fun_details(id_key):
 	    applications.esap,
 	    applications.book_number,
 	    applications.dikaiomata_total,
-	    banks.descr AS bank,
 	    applications.iban
 	FROM applications 
-	JOIN banks ON applications.bank_id = banks.id
 	WHERE applications.id = '{id_key}' 
 	"""
 	return(pd.read_sql(query, con=engine))
@@ -363,8 +364,8 @@ def get_economics(application_id):
       esap_cost_val_f=0
   esap_cost_val=esap_cost_val_f/1.24
   p_c_f = 0
-  if fun_parcels(afm, year_key)>0:
-      p_c_f = find_parcel_cost(fun_parcels(application_id), year_key)
+  if fun_parcels(application_id)>0:
+    p_c_f = find_parcel_cost(fun_parcels(application_id), year_key)
   p_c = p_c_f/1.24
   st_c_f = 0
   if fun_stables(application_id)>0:
@@ -483,16 +484,16 @@ def get_economics(application_id):
       'afm': str(df1.loc[0,'afm']),
       'year': str(df1.loc[0,'year']),
       'book_number': str(df1.loc[0,'book_number']),
-      'bank': df1.loc[0,'bank'],
+      # 'bank': df1.loc[0,'bank'],
       'iban': df1.loc[0,'iban'],
 ##
-      'num_parcels': str(fun_parcels(afm, year_key)),
+      'num_parcels': str(fun_parcels(application_id)),
       'p_c_f': format_currency(p_c_f, 'EUR', locale='el_GR'),
       'p_c': format_currency(p_c, 'EUR', locale='el_GR'),
-      'num_stables': str(fun_stables(afm, year_key)),
+      'num_stables': str(fun_stables(application_id)),
       'st_c_f': format_currency(st_c_f, 'EUR', locale='el_GR'),
       'st_c': format_currency(st_c, 'EUR', locale='el_GR'),
-      'num_equal': str(fun_equals(afm, year_key)),
+      'num_equal': str(fun_equals(application_id)),
       'eq_c_f': format_currency(eq_c_f, 'EUR', locale='el_GR'),
       'eq_c': format_currency(eq_c, 'EUR', locale='el_GR'),
       'sum_d_f': format_currency(sum_d_f, 'EUR', locale='el_GR'),
@@ -505,10 +506,10 @@ def get_economics(application_id):
 
 
 ##
-      'elga_cult': format_currency(fun_elga_cult(afm, year_key), 'EUR', locale='el_GR'),
-      'elga_catl': format_currency(fun_elga_catl(afm, year_key), 'EUR', locale='el_GR'),
-      'elga_anim': format_currency(fun_elga_anim(afm, year_key), 'EUR', locale='el_GR'),
-      'elga_total': format_currency(fun_elga_cult(afm, year_key)+fun_elga_catl(afm, year_key)+fun_elga_anim(afm, year_key), 'EUR', locale='el_GR'),
+      'elga_cult': format_currency(fun_elga_cult(application_id), 'EUR', locale='el_GR'),
+      'elga_catl': format_currency(fun_elga_catl(application_id), 'EUR', locale='el_GR'),
+      'elga_anim': format_currency(fun_elga_anim(application_id), 'EUR', locale='el_GR'),
+      'elga_total': format_currency(fun_elga_cult(application_id)+fun_elga_catl(application_id)+fun_elga_anim(application_id), 'EUR', locale='el_GR'),
 ##
       'dikaiomata_total': format_currency(df1.loc[0,'dikaiomata_total'], 'EUR', locale='el_GR'),
 ##

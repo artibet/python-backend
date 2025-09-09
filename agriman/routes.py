@@ -54,7 +54,7 @@ async def symvasi(request: Request):
 # economics.docx
 # -----------------------------------------------------------------------------
 @router.post('/economics')
-async def symvasi(request: Request):
+async def economics(request: Request):
   
   # get application_id from request
   body = await request.json()
