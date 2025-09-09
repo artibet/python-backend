@@ -28,36 +28,39 @@ def get_pagia(customer_id, period_id):
   FROM applications
   JOIN customers ON customers.afm = applications.afm
   JOIN banks ON banks.id = applications.bank_id
-  WHERE applications.period_id = {period_id} AND
-        customers.id = {customer_id}
+  WHERE applications.period_id = {period_id} AND customers.id = {customer_id}
   """
   df=pd.read_sql(query, con=engine)
-  
-  if df.loc[0,'bankscode'] == '017': ##ΤΡΑΠΕΖΑ ΠΕΙΡΑΙΩΣ Α.Ε. (017)
-    doc = DocxTemplate("./agriman/templates/pagiaTP.docx")
-  elif df.loc[0,'bankscode'] == '011': ##ΕΘΝΙΚΗ ΤΡΑΠΕΖΑ ΤΗΣ ΕΛΛΑΔΟΣ Α.Ε. (011)
-    doc = DocxTemplate("./agriman/templates/pagiaNBG.docx")
-  else:
+  if df.empty:
     doc = Document()
     doc.add_heading('ΠΡΟΣΟΧΗ', level=0)
-    doc.add_paragraph('Ο πελάτης δεν διαθέτει τραπεζικό λογαριασμό είτε στην ΤΡΑΠΕΖΑ ΠΕΙΡΑΙΩΣ Α.Ε. είτε ΕΘΝΙΚΗ ΤΡΑΠΕΖΑ ΤΗΣ ΕΛΛΑΔΟΣ Α.Ε. ή δεν έχει δηλώσει τραπεζικό λογαριασμό')
-  
-  context ={
-    'firstname' : df.loc[0,'firstname'],
-    'lastname' : df.loc[0,'lastname'],
-    'fathername' : df.loc[0,'fathername'],
-    'afm' : df.loc[0,'afm'],
-    'idno' : df.loc[0,'idno'],
-    'tk' : df.loc[0,'tk'],
-    'lkkoi_b2_description' : df.loc[0,'lkkoi_b2_description'],
-    'phone' : df.loc[0,'phone'],
-    'mobil' : df.loc[0,'mobil'],
-    'iban' : df.loc[0,'iban'],
-    'bankscode' : df.loc[0,'bankscode'],
-    'year' : df.loc[0,'year'],
-    'date' : date.today().strftime("%d/%m/%Y")
-  }
-  doc.render(context)
+    doc.add_paragraph('Ο πελάτης δεν έχει κάνει δήλωση στην τρέχουσα περίοδο')
+  else:
+    if df.loc[0,'bankscode'] == '017': ##ΤΡΑΠΕΖΑ ΠΕΙΡΑΙΩΣ Α.Ε. (017)
+      doc = DocxTemplate("./agriman/templates/pagiaTP.docx")
+    elif df.loc[0,'bankscode'] == '011': ##ΕΘΝΙΚΗ ΤΡΑΠΕΖΑ ΤΗΣ ΕΛΛΑΔΟΣ Α.Ε. (011)
+      doc = DocxTemplate("./agriman/templates/pagiaNBG.docx")
+    else:
+      doc = Document()
+      doc.add_heading('ΠΡΟΣΟΧΗ', level=0)
+      doc.add_paragraph('Ο πελάτης δεν διαθέτει τραπεζικό λογαριασμό είτε στην ΤΡΑΠΕΖΑ ΠΕΙΡΑΙΩΣ Α.Ε. είτε ΕΘΝΙΚΗ ΤΡΑΠΕΖΑ ΤΗΣ ΕΛΛΑΔΟΣ Α.Ε. ή δεν έχει δηλώσει τραπεζικό λογαριασμό')
+
+    context ={
+      'firstname' : df.loc[0,'firstname'],
+      'lastname' : df.loc[0,'lastname'],
+      'fathername' : df.loc[0,'fathername'],
+      'afm' : df.loc[0,'afm'],
+      'idno' : df.loc[0,'idno'],
+      'tk' : df.loc[0,'tk'],
+      'lkkoi_b2_description' : df.loc[0,'lkkoi_b2_description'],
+      'phone' : df.loc[0,'phone'],
+      'mobil' : df.loc[0,'mobil'],
+      'iban' : df.loc[0,'iban'],
+      'bankscode' : df.loc[0,'bankscode'],
+      'year' : df.loc[0,'year'],
+      'date' : date.today().strftime("%d/%m/%Y")
+    }
+    doc.render(context)
 
   buffer = BytesIO()
   doc.save(buffer)
