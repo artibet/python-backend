@@ -35,13 +35,21 @@ def compute_cost(row, parcel_costs):
 def get_stats_users(period_id):
 
   engine = get_engine()
-  
+  query0 = f"""
+  SELECT
+    periods.year
+  FROM periods
+  WHERE periods.id = {period_id}
+  """
+  df0 = pd.read_sql(query0, con=engine)
+  etos=df0.loc[0,'year']
   query1 = f"""
   SELECT
     applications.afm,
     applications.firstname,
     applications.lastname,
     applications.status_id,
+    applications.year,
     applications.book_number
   FROM applications
   WHERE applications.period_id = {period_id}
@@ -50,8 +58,11 @@ def get_stats_users(period_id):
   ## Μετατροπή book_number σε string και αφαίρεση κενών
   df1['book_number'] = df1['book_number'].astype(str).str.strip()
 
+  etos=str(etos)
+  etos=etos[-2:]
+  str_book=etos+'02'
   ## Αντικατάσταση όλων των book_number που ξεκινούν από 2502 με την τιμή '2502'
-  df1['book_number'] = df1['book_number'].apply(lambda x: '2502*' if x.startswith('2502') else x)
+  df1['book_number'] = df1['book_number'].apply(lambda x: str_book+'*' if x.startswith(str_book) else x)
 
   query2 = f"""
   SELECT
