@@ -17,14 +17,6 @@ database="agriman"
 
 engine = create_engine(f"mysql+mysqlconnector://{user}:{password}@{host}/{database}")
 
-# # Φόρτωση των αρχείων Excel
-# ##support_schemes_df = pd.read_excel("Support_schemes.xlsx")
-# dfA = pd.read_excel("../Excel_Inputs/applications_2025.xlsx", dtype={'afm': str}, engine='openpyxl')
-# dfL = pd.read_excel("../Excel_Inputs/livestock_2025.xlsx", dtype={'afm': str}, engine='openpyxl')
-# dfC = pd.read_excel("../Excel_Inputs/cultivations_2025.xlsx", dtype={'afm': str}, engine='openpyxl')
-
-
-
 
 def check_esap(id_key):
 	query1 = f"""
@@ -84,7 +76,6 @@ def check_esap(id_key):
 		"""))
 
 	return()
-
 
 def check_pasture_mmz(id_key):
 	query1 = f"""
@@ -147,7 +138,6 @@ def check_pasture_mmz(id_key):
 
 	return()
 
-
 def check_corn_irrigation(id_key):
 	#### SQL ερώτημα
 	query1 = f"""
@@ -200,7 +190,6 @@ def check_corn_irrigation(id_key):
 		"""))
 
 	return()
-
 
 def check_national_reserve(id_key):
 	query1 = f"""
@@ -255,7 +244,6 @@ def check_national_reserve(id_key):
 		"""))
 
 	return()
-
 
 def check_young_farmers(id_key):
 	query1 = f"""
@@ -409,76 +397,111 @@ def check_application_ecoschemes(id_key):
 
 	return()
 
-
 def check_crop_connected(id_key):
 	query1 = f"""
-	SELECT
-		applications.afm,
-		applications.year,
-		ecoschemes.code AS code
-	FROM parcels
-	JOIN applications ON applications.id = parcels.application_id
-	JOIN ecoschemes ON ecoschemes.parcel_id = parcels.id
-	WHERE applications.id = '{id_key}' AND parcels.is_seed_cultivation = 0
-	GROUP BY applications.afm, ecoschemes.code
-	ORDER BY ecoschemes.code
-	"""
-	df1=pd.read_sql(query1, con=engine)
+    SELECT
+        applications.afm,
+        applications.year,
+        support_schemes.code AS code,
+        supports.descr AS descr,
+        parcel_cultivations.area,
+		parcel_cultivations.id
+    FROM support_schemes
+    JOIN supports ON supports.code = support_schemes.code 
+    JOIN parcel_cultivations ON parcel_cultivations.id = support_schemes.parcel_cultivation_id
+    JOIN parcels ON parcels.id = parcel_cultivations.parcel_id
+    JOIN applications ON applications.id = parcels.application_id
+    WHERE applications.id = '{id_key}' AND supports.period_id = applications.period_id
+	ORDER BY support_schemes.code
+    """
+	##AND parcels.is_seed_cultivation = 0
 
+	df1=pd.read_sql(query1, con=engine)
 	if len(df1) == 0:
 		status_1 = 0
 	else:
 		status_1 = 1
-		query2 = f"""
-		SELECT
-			applications.afm,
-			application_ecoschemes.code
-		FROM applications 
-		JOIN application_ecoschemes ON application_ecoschemes.application_id = applications.id
-		WHERE applications.id = '{id_key}' 
-		ORDER BY application_ecoschemes.code
-		"""
-		df2=pd.read_sql(query2, con=engine)
-		if len(df2) == 0:
-			status_2 = 0
-		else:
-			status_2 = 1
-			# query3 = f"""
-			# SELECT
-			# 	corresponds.target,
-			# FROM corresponds 
-			# WHERE corresponds.scope = ecoscheme AND corresponds.source = '{eco}' 
-			# ORDER BY application_ecoschemes.code
-			# """
-			# df3=pd.read_sql(query3, con=engine)
+		# print(df1)
+		# print(id_key)
 
-
-	passed=None
-	notes=''
-	if status_1 == 0:
-		passed = 1
-		notes='Δεν έχουν δηλωθεί Οικοσχήματα'
+	query2 = f"""
+    SELECT
+        applications.afm,
+        applications.year,
+        support_schemes.code AS code,
+        parcel_cultivations.area,
+		parcel_cultivations.id,
+		supports.code AS scode
+    FROM applications
+	JOIN parcels ON applications.id = parcels.application_id
+	JOIN parcel_cultivations ON parcels.id = parcel_cultivations.parcel_id
+	JOIN support_varieties ON support_varieties.variety_id = parcel_cultivations.variety_id
+	JOIN supports ON supports.id = support_varieties.support_id
+	JOIN support_schemes ON support_schemes.parcel_cultivation_id = parcel_cultivations.id
+	WHERE applications.id = '{id_key}' AND supports.period_id = applications.period_id
+	ORDER BY parcel_cultivations.id
+    """
+	df2=pd.read_sql(query2, con=engine)
+	if len(df2) == 0:
+		status_1 = 0
 	else:
-		codes_str = ", ".join(df1["code"].tolist())
-		if status_2 == 0:
-			passed = 0
-			notes='Έχουν δηλωθεί τα Οικοσχήματα: '+ codes_str +' δεν υπάρχουν στην δήλωση'
-		else:
-			passed = 0
-			codes_str2 = ", ".join(df2["code"].tolist())
-			notes='Έχουν δηλωθεί τα Οικοσχήματα: '+ codes_str +' και υπάρχουν στην δήλωση: '+ codes_str2
+		status_1 = 1
+		# print(df2)
+		if df2["code"].isnull().any():
+			print(df2)
+			print(id_key)
 
-	check_id = 8
 
-	with engine.begin() as conn:
-		conn.execute(text(f"""
-			UPDATE application_checks
-			SET checked_at = UTC_TIMESTAMP(),
-				passed = {passed},
-				notes = '{notes}'
-			WHERE application_id = {id_key} AND check_id = {check_id}
-		"""))
 
+	# 	query2 = f"""
+	# 	SELECT
+	# 		applications.afm,
+	# 		application_ecoschemes.code
+	# 	FROM applications 
+	# 	JOIN application_ecoschemes ON application_ecoschemes.application_id = applications.id
+	# 	WHERE applications.id = '{id_key}' 
+	# 	ORDER BY application_ecoschemes.code
+	# 	"""
+	# 	df2=pd.read_sql(query2, con=engine)
+	# 	if len(df2) == 0:
+	# 		status_2 = 0
+	# 	else:
+	# 		status_2 = 1
+	# 		# query3 = f"""
+	# 		# SELECT
+	# 		# 	corresponds.target,
+	# 		# FROM corresponds 
+	# 		# WHERE corresponds.scope = ecoscheme AND corresponds.source = '{eco}' 
+	# 		# ORDER BY application_ecoschemes.code
+	# 		# """
+	# 		# df3=pd.read_sql(query3, con=engine)
+
+
+	# passed=None
+	# notes=''
+	# if status_1 == 0:
+	# 	passed = 1
+	# 	notes='Δεν έχουν δηλωθεί Οικοσχήματα'
+	# else:
+	# 	codes_str = ", ".join(df1["code"].tolist())
+	# 	if status_2 == 0:
+	# 		passed = 0
+	# 		notes='Έχουν δηλωθεί τα Οικοσχήματα: '+ codes_str +' δεν υπάρχουν στην δήλωση'
+	# 	else:
+	# 		passed = 0
+	# 		codes_str2 = ", ".join(df2["code"].tolist())
+	# 		notes='Έχουν δηλωθεί τα Οικοσχήματα: '+ codes_str +' και υπάρχουν στην δήλωση: '+ codes_str2
+
+	# check_id = 8
+
+	# with engine.begin() as conn:
+	# 	conn.execute(text(f"""
+	# 		UPDATE application_checks
+	# 		SET checked_at = UTC_TIMESTAMP(),
+	# 			passed = {passed},
+	# 			notes = '{notes}'
+	# 		WHERE application_id = {id_key} AND check_id = {check_id}
+	# 	"""))
 	return()
 
 
@@ -737,7 +760,7 @@ def check_crop_ecoschemes_measures_incompatibility(id_key):
 			"""
 			df5=pd.read_sql(query5, con=engine)
 			if len(df5) == 0:
-				status_2 = 1
+				status_2 = -1 ## Να το ελεξγω
 				print(df5)
 				print(val3)
 				print(val4)
@@ -752,7 +775,7 @@ def check_crop_ecoschemes_measures_incompatibility(id_key):
 		passed = 1
 		notes='Δεν έχουν δηλωθεί είτε Οικοσχήματα είτε Μέτρα '
 	else:
-		if status_2 == 0:
+		if status_2 == 1:
 			passed = 1
 			notes='Δεν υπάρχουν ασυμβατότητες μεταξύ Οικοσχημάτων και Μέτρων'
 		else:
@@ -832,10 +855,10 @@ def check_livestock_echoschemes_incompatibility(id_key):
 				else:
 					value= df5.loc[0, 'value']
 					if value == 0:
-						status_2 = 0
+						status_2 = 1
 						list_incomp.append(comb)
 					else:
-						status_2 = 1
+						status_2 = 0
 
 	if status_1 == -1:
 		passed = 1
@@ -956,7 +979,6 @@ def check_livestock_measures_incompatibility(id_key):
 	return()
 
 
-
 # livestock_ecoschemes_measures_incompatibility
 def check_livestock_ecoschemes_measures_incompatibility(id_key):
 	query1 = f"""
@@ -1059,7 +1081,69 @@ def check_livestock_ecoschemes_measures_incompatibility(id_key):
 	return()
 
 
+# application_atak
+def check_application_atak(id_key):
+	query1 = f"""
+	SELECT
+		applications.afm,
+		applications.year,
+		parcels.code AS aa,
+		parcels.area AS parcel_area,
+		contracts.atak,
+		contracts.area AS atak_area
+	FROM applications
+	JOIN parcels ON parcels.application_id = applications.id
+	JOIN contracts ON contracts.parcel_id = parcels.id
+	WHERE applications.id = '{id_key}'
+	ORDER BY parcels.code
+	"""
+	df1 = pd.read_sql(query1, con=engine)
+	if len(df1) == 0:
+		status_1 = -1
+	else:
+		df1['a_area']=df1['atak_area'].where(df1['atak'].notna(),0)
+		res = (
+			df1.groupby('aa', as_index=False)
+			.agg(
+				parcel_area=('parcel_area', 'first'),
+				total_atak_area=('a_area', 'sum'),
+				count_atak_true=('atak','count'),
+				count_atak_all=('aa','size')
+			)
+		) 
+		res['parcel_area']=res['parcel_area'].round(2)
+		res['total_atak_area']=res['total_atak_area'].round(2)
+		res_list=res.values.tolist()
+		msmall=[]
+		status_1 = 1
+		for row in res_list:
+			if not (row[1]<=row[2] and row[3]==row[4]):
+				status_1 = 0
+				msm=f'Αγροτεμαχιο {row[0]}: Έκταση ΑΤΑΚ/αγροτεμαχιο = {row[2]}/{row[1]}, πλήθος ΑΤΑΚ/Όλα = {row[3]}/{row[4]} '
+				msmall.append(msm)
 
+	if status_1 == -1:
+		passed = 0
+		notes='Δεν έχουν δηλωθεί ATAK'
+	elif status_1 == 1:
+		passed = 1
+		notes='Δεν έχουν δηλωθεί όλα τα ATAK'
+	else:
+		passed = 0
+		notes = "\n".join(msmall)
+
+	check_id = 16
+
+	with engine.begin() as conn:
+		conn.execute(text(f"""
+			UPDATE application_checks
+			SET checked_at = UTC_TIMESTAMP(),
+				passed = {passed},
+				notes = '{notes}'
+			WHERE application_id = {id_key} AND check_id = {check_id}
+		"""))
+
+	return()
 
 
 query = f"""
@@ -1074,7 +1158,8 @@ if df.empty:
 else:
 	ids = df['id']
 
-
+# check_crop_connected(78047)
+# check_crop_connected(78060)
 
 
 for app_id in ids:
@@ -1090,6 +1175,8 @@ for app_id in ids:
 	check_livestock_echoschemes_incompatibility(app_id)
 	check_livestock_measures_incompatibility(app_id)
 	check_livestock_ecoschemes_measures_incompatibility(app_id)
+	check_application_atak(app_id)
+	# check_crop_connected(app_id)
 
 print(len(ids))
 
