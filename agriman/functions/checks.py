@@ -504,6 +504,7 @@ def check_crop_echoschemes_incompatibility(id_key):
 				df4=pd.read_sql(query4, con=engine)
 				if df4.empty:
 					fid.write(f'{comb[1]}\n')
+					continue
 				val4= df4.loc[0, 'source']
 				query5 = f"""
 				SELECT
@@ -590,6 +591,7 @@ def check_crop_measures_incompatibility(id_key):
 				df4=pd.read_sql(query4, con=engine)
 				if df4.empty:
 					fid.write(f'{comb[1]}\n')
+					continue
 				val4= df4.loc[0, 'source']
 				query5 = f"""
 				SELECT
@@ -694,6 +696,7 @@ def check_crop_ecoschemes_measures_incompatibility(id_key):
 					df4=pd.read_sql(query4, con=engine)
 					if df4.empty:
 						fid.write(f'{comb[1]}\n')
+						continue
 					val4= df4.loc[0, 'source']
 					query5 = f"""
 					SELECT
