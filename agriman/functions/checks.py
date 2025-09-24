@@ -403,133 +403,87 @@ def check_crop_connected(id_key):
         applications.afm,
         applications.year,
         support_schemes.code AS code,
-        supports.descr AS descr,
         parcel_cultivations.area,
-		parcel_cultivations.id
-    FROM support_schemes
-    JOIN supports ON supports.code = support_schemes.code 
-    JOIN parcel_cultivations ON parcel_cultivations.id = support_schemes.parcel_cultivation_id
-    JOIN parcels ON parcels.id = parcel_cultivations.parcel_id
-    JOIN applications ON applications.id = parcels.application_id
-    WHERE applications.id = '{id_key}' AND supports.period_id = applications.period_id
-	ORDER BY support_schemes.code
-    """
-	##AND parcels.is_seed_cultivation = 0
-
-	df1=pd.read_sql(query1, con=engine)
-	if len(df1) == 0:
-		status_1 = 0
-	else:
-		status_1 = 1
-		# print(df1)
-		# print(id_key)
-
-	query2 = f"""
-    SELECT
-        applications.afm,
-        applications.year,
-        support_schemes.code AS code,
-        parcel_cultivations.area,
+		parcels.code AS aa,
 		parcel_cultivations.id,
+		parcel_cultivations.variety_id,
 		supports.code AS scode
     FROM applications
 	JOIN parcels ON applications.id = parcels.application_id
 	JOIN parcel_cultivations ON parcels.id = parcel_cultivations.parcel_id
 	JOIN support_varieties ON support_varieties.variety_id = parcel_cultivations.variety_id
 	JOIN supports ON supports.id = support_varieties.support_id
-	JOIN support_schemes ON support_schemes.parcel_cultivation_id = parcel_cultivations.id
-	WHERE applications.id = '{id_key}' AND supports.period_id = applications.period_id
+	LEFT OUTER JOIN support_schemes ON support_schemes.parcel_cultivation_id = parcel_cultivations.id
+	WHERE applications.id = '{id_key}' AND supports.period_id = applications.period_id 
+	AND supports.code IN ('0101','0102','0103','0104','0105','0106','0107','0109','0112','0113','0114','0118','0120','0122','0123','0124','0125','0126','0127','0323','0501')
 	ORDER BY parcel_cultivations.id
     """
-	df2=pd.read_sql(query2, con=engine)
-	if len(df2) == 0:
-		status_1 = 0
+	df1=pd.read_sql(query1, con=engine)
+	if len(df1) == 0:
+		status_1 = -1
 	else:
-		status_1 = 1
-		# print(df2)
-		if df2["code"].isnull().any():
-			print(df2)
-			print(id_key)
+		# df1=df1[df1['scode'] != '1101']
+		df_con=df1[df1['code'] != df1['scode']]
+		if len(df_con) == 0:
+			status_1 = 1
+		else:
+			status_1 = 0
+			res_list=df_con.values.tolist()
+			msmall=[]
+			for row in res_list:
+				msm=f'A/A {row[4]}: Δηλωμένη Συνδεδεμένη: {row[2]} και υποστηριζόμενη: {row[7]}'
+				msmall.append(msm)
 
+	if status_1 == -1:
+		passed = 1
+		notes='Δεν έχουν δηλωθεί Συνδεδεμένες'
+	else:
+		if status_1 == 1:
+			passed = 1
+			notes='Οι δηλωμένες Συνδεδεμένες είναι σωστές'
+		else:
+			passed = 0
+			notes = "\n".join(msmall)
 
+	check_id = 8
 
-	# 	query2 = f"""
-	# 	SELECT
-	# 		applications.afm,
-	# 		application_ecoschemes.code
-	# 	FROM applications 
-	# 	JOIN application_ecoschemes ON application_ecoschemes.application_id = applications.id
-	# 	WHERE applications.id = '{id_key}' 
-	# 	ORDER BY application_ecoschemes.code
-	# 	"""
-	# 	df2=pd.read_sql(query2, con=engine)
-	# 	if len(df2) == 0:
-	# 		status_2 = 0
-	# 	else:
-	# 		status_2 = 1
-	# 		# query3 = f"""
-	# 		# SELECT
-	# 		# 	corresponds.target,
-	# 		# FROM corresponds 
-	# 		# WHERE corresponds.scope = ecoscheme AND corresponds.source = '{eco}' 
-	# 		# ORDER BY application_ecoschemes.code
-	# 		# """
-	# 		# df3=pd.read_sql(query3, con=engine)
-
-
-	# passed=None
-	# notes=''
-	# if status_1 == 0:
-	# 	passed = 1
-	# 	notes='Δεν έχουν δηλωθεί Οικοσχήματα'
-	# else:
-	# 	codes_str = ", ".join(df1["code"].tolist())
-	# 	if status_2 == 0:
-	# 		passed = 0
-	# 		notes='Έχουν δηλωθεί τα Οικοσχήματα: '+ codes_str +' δεν υπάρχουν στην δήλωση'
-	# 	else:
-	# 		passed = 0
-	# 		codes_str2 = ", ".join(df2["code"].tolist())
-	# 		notes='Έχουν δηλωθεί τα Οικοσχήματα: '+ codes_str +' και υπάρχουν στην δήλωση: '+ codes_str2
-
-	# check_id = 8
-
-	# with engine.begin() as conn:
-	# 	conn.execute(text(f"""
-	# 		UPDATE application_checks
-	# 		SET checked_at = UTC_TIMESTAMP(),
-	# 			passed = {passed},
-	# 			notes = '{notes}'
-	# 		WHERE application_id = {id_key} AND check_id = {check_id}
-	# 	"""))
+	with engine.begin() as conn:
+		conn.execute(text(f"""
+			UPDATE application_checks
+			SET checked_at = UTC_TIMESTAMP(),
+				passed = {passed},
+				notes = '{notes}'
+			WHERE application_id = {id_key} AND check_id = {check_id}
+		"""))
 	return()
 
-
 def check_crop_echoschemes_incompatibility(id_key):
+	fid=open('log_check_crop_echoschemes_incompatibility.txt','a')
 	query1 = f"""
 	SELECT
 		applications.afm,
 		applications.year,
+		parcels.code AS aa,
 		ecoschemes.code AS code
 	FROM parcels
 	JOIN applications ON applications.id = parcels.application_id
 	JOIN ecoschemes ON ecoschemes.parcel_id = parcels.id
-	WHERE applications.id = '{id_key}' AND parcels.is_seed_cultivation = 0
-	GROUP BY applications.afm, ecoschemes.code
-	ORDER BY ecoschemes.code
+	WHERE applications.id = '{id_key}' AND parcels.is_seed_cultivation = 0 AND ecoschemes.code NOT IN('ECO-06.01')
+	ORDER BY parcels.code
 	"""
 	df1=pd.read_sql(query1, con=engine)
 
 	if len(df1) == 0:
 		status_1 = -1
 	else:
-		eco_list = df1["code"].tolist()
-		if len(eco_list) == 1:
-			status_1 = 0
-		else:
-			status_1 = 1
+		status_1 = 0
+		aa_dict = df1.groupby("aa")["code"].apply(list).to_dict()
+		list_reports=[]
+		for key in aa_dict.keys():
+			if len(aa_dict[key])<=1:
+				continue
+			eco_list = aa_dict[key]
 			comb_list = [list(c) for c in itertools.combinations(eco_list, 2)]
-			list_incomp=[]
 			for comb in comb_list:
 				query3 = f"""
 				SELECT
@@ -539,7 +493,7 @@ def check_crop_echoschemes_incompatibility(id_key):
 				"""
 				df3=pd.read_sql(query3, con=engine)
 				if df3.empty:
-					print(comb[0])
+					fid.write(f'{comb[0]}\n')
 				val3= df3.loc[0, "source"]
 				query4 = f"""
 				SELECT
@@ -549,7 +503,7 @@ def check_crop_echoschemes_incompatibility(id_key):
 				"""
 				df4=pd.read_sql(query4, con=engine)
 				if df4.empty:
-					print(comb[1])
+					fid.write(f'{comb[1]}\n')
 				val4= df4.loc[0, 'source']
 				query5 = f"""
 				SELECT
@@ -559,31 +513,22 @@ def check_crop_echoschemes_incompatibility(id_key):
 				"""
 				df5=pd.read_sql(query5, con=engine)
 				if len(df5) == 0:
-					status_2 = 1
+					fid.write(f'δεν υπάρχει το {val3} ή {val4}\n')
 				else:
 					value= df5.loc[0, 'value']
 					if value == 0:
-						status_2 = 0
-						list_incomp.append(comb)
-					else:
-						status_2 = 1
-	
-	passed=None
-	notes=''
+						list_reports.append(f'Α/Α {key} : υπάρχει ασυμβατότητα μεταξύ {val3} και {val4}')
+
 	if status_1 == -1:
 		passed = 1
 		notes='Δεν έχουν δηλωθεί Οικοσχήματα'
-	elif status_1 == 0:
-		passed = 1
-		notes='Έχει δηλωθεί ένα Οικοσχήμα'
 	else:
-		if status_2 == 0:
+		if len(list_reports)==0:
 			passed = 1
 			notes='Δεν υπάρχουν ασυμβατότητες μεταξύ των Οικοσχημάτων'
 		else:
 			passed = 0
-			s = "\n".join([" , ".join(sublist) for sublist in list_incomp])
-			notes='Υπάρχουν ασυμβατότητες μεταξύ των Οικοσχημάτων: ' + s
+			notes="\n".join(list_reports)
 
 	check_id = 9
 
@@ -595,34 +540,36 @@ def check_crop_echoschemes_incompatibility(id_key):
 				notes = '{notes}'
 			WHERE application_id = {id_key} AND check_id = {check_id}
 		"""))
+	fid.close()
 	return()
-
 
 # crop_measures_incompatibility
 def check_crop_measures_incompatibility(id_key):
+	fid=open('log_check_crop_measures_incompatibility.txt','a')
 	query1 = f"""
     SELECT
         applications.afm,
         applications.year,
+		parcels.code AS aa,
         measures.code AS code
     FROM measures
     JOIN parcels ON parcels.id = measures.parcel_id
     JOIN applications ON applications.id = parcels.application_id
     WHERE applications.id = '{id_key}' AND measures.code LIKE 'Π3.70%'
-    GROUP BY measures.code
     ORDER BY measures.code
     """
 	df1 = pd.read_sql(query1, con=engine)
 	if len(df1) == 0:
 		status_1 = -1
 	else:
-		meas_list = df1["code"].tolist()
-		if len(meas_list) == 1:
-			status_1 = 0
-		else:
-			status_1 = 1
+		status_1 = 0
+		aa_dict = df1.groupby("aa")["code"].apply(list).to_dict()
+		list_reports=[]
+		for key in aa_dict.keys():
+			if len(aa_dict[key])<=1:
+				continue
+			meas_list = aa_dict[key]
 			comb_list = [list(c) for c in itertools.combinations(meas_list, 2)]
-			list_incomp=[]
 			for comb in comb_list:
 				query3 = f"""
 				SELECT
@@ -632,7 +579,7 @@ def check_crop_measures_incompatibility(id_key):
 				"""
 				df3=pd.read_sql(query3, con=engine)
 				if df3.empty:
-					print(comb[0])
+					fid.write(f'{comb[0]}\n')
 				val3= df3.loc[0, "source"]
 				query4 = f"""
 				SELECT
@@ -642,8 +589,7 @@ def check_crop_measures_incompatibility(id_key):
 				"""
 				df4=pd.read_sql(query4, con=engine)
 				if df4.empty:
-					print(comb[1])
-					continue
+					fid.write(f'{comb[1]}\n')
 				val4= df4.loc[0, 'source']
 				query5 = f"""
 				SELECT
@@ -653,32 +599,22 @@ def check_crop_measures_incompatibility(id_key):
 				"""
 				df5=pd.read_sql(query5, con=engine)
 				if len(df5) == 0:
-					status_2 = 1
+					fid.write(f'δεν υπάρχει το {val3} ή {val4}\n')
 				else:
 					value= df5.loc[0, 'value']
 					if value == 0:
-						status_2 = 0
-						list_incomp.append(comb)
-					else:
-						status_2 = 1
-	
-	
-	passed=None
-	notes=''
+						list_reports.append(f'Α/Α {key} : υπάρχει ασυμβατότητα μεταξύ {val3} και {val4}')
+
 	if status_1 == -1:
 		passed = 1
 		notes='Δεν έχουν δηλωθεί Μέτρα'
-	elif status_1 == 0:
-		passed = 1
-		notes='Έχει δηλωθεί ένα Μέτρο'
 	else:
-		if status_2 == 0:
+		if len(list_reports)==0:
 			passed = 1
 			notes='Δεν υπάρχουν ασυμβατότητες μεταξύ των Μέτρων'
 		else:
 			passed = 0
-			s = "\n".join([" , ".join(sublist) for sublist in list_incomp])
-			notes='Υπάρχουν ασυμβατότητες μεταξύ των Μέτρων: ' + s
+			notes="\n".join(list_reports)
 
 	check_id = 10
 
@@ -690,23 +626,22 @@ def check_crop_measures_incompatibility(id_key):
 				notes = '{notes}'
 			WHERE application_id = {id_key} AND check_id = {check_id}
 		"""))
-
+	fid.close()
 	return()
 
-
 # crop_ecoschemes_measures_incompatibility
-
 def check_crop_ecoschemes_measures_incompatibility(id_key):
+	fid=open('log_check_crop_ecoschemes_measures_incompatibility.txt','a')
 	query1 = f"""
 	SELECT
 		applications.afm,
 		applications.year,
+		parcels.code AS aa,
 		ecoschemes.code AS code
 	FROM parcels
 	JOIN applications ON applications.id = parcels.application_id
 	JOIN ecoschemes ON ecoschemes.parcel_id = parcels.id
 	WHERE applications.id = '{id_key}' AND parcels.is_seed_cultivation = 0
-	GROUP BY applications.afm, ecoschemes.code
 	ORDER BY ecoschemes.code
 	"""
 	df1 = pd.read_sql(query1, con=engine)
@@ -714,12 +649,12 @@ def check_crop_ecoschemes_measures_incompatibility(id_key):
     SELECT
         applications.afm,
         applications.year,
+		parcels.code AS aa,
         measures.code AS code
     FROM measures
     JOIN parcels ON parcels.id = measures.parcel_id
     JOIN applications ON applications.id = parcels.application_id
     WHERE applications.id = '{id_key}' AND measures.code LIKE 'Π3.70%'
-    GROUP BY measures.code
     ORDER BY measures.code
     """
 	df2=pd.read_sql(query2, con=engine)
@@ -727,63 +662,66 @@ def check_crop_ecoschemes_measures_incompatibility(id_key):
 	if len(df1) == 0 or len(df2) == 0:
 		status_1 = -1
 	else:
-		eco_list = df1["code"].tolist()
-		meas_list = df2["code"].tolist()
-		combinations = [list(pair) for pair in itertools.product(eco_list, meas_list)]
-		status_1 = 1
-		list_incomp=[]
-		for comb in combinations:
-			query3 = f"""
-			SELECT
-				corresponds.source
-			FROM corresponds 
-			WHERE corresponds.scope = 'ecoscheme' AND corresponds.target = '{comb[0]}' 
-			"""
-			df3=pd.read_sql(query3, con=engine)
-			if df3.empty:
-				print(comb[0])
-			val3= df3.loc[0, "source"]
-			query4 = f"""
-			SELECT
-				corresponds.source
-			FROM corresponds 
-			WHERE corresponds.scope = 'measure' AND corresponds.target = '{comb[1]}' 
-			"""
-			df4=pd.read_sql(query4, con=engine)
-			if df4.empty:
-				print(comb[1])
-				continue
-			val4= df4.loc[0, 'source']
-			query5 = f"""
-			SELECT
-				correlations.value
-			FROM correlations 
-			WHERE correlations.scope = 'table3'  AND correlations.source = '{val3}' AND correlations.target =  '{val4}'
-			"""
-			df5=pd.read_sql(query5, con=engine)
-			if len(df5) == 0:
-				status_2 = -1 ## Να το ελεξγω
-				print(df5)
-				print(val3)
-				print(val4)
-			else:
-				value= df5.loc[0, 'value']
-				if value == 0:
-					status_2 = 0
-					list_incomp.append(comb)
-				else:
-					status_2 = 1
+		aa_dict1 = df1.groupby("aa")["code"].apply(list).to_dict()
+		aa_dict2 = df2.groupby("aa")["code"].apply(list).to_dict()
+		merged_dict={k:[aa_dict1[k],aa_dict2[k]] for k in aa_dict1.keys() & aa_dict2.keys()}
+		if len(merged_dict)==0:
+			status_1 = 0
+		else:
+			status_1 = 1
+			list_reports=[]
+			for key in merged_dict.keys():
+				eco_list = merged_dict[key][0]
+				meas_list = merged_dict[key][1]
+				combinations = [list(pair) for pair in itertools.product(eco_list, meas_list)]
+				for comb in combinations:
+					query3 = f"""
+					SELECT
+						corresponds.source
+					FROM corresponds 
+					WHERE corresponds.scope = 'ecoscheme' AND corresponds.target = '{comb[0]}' 
+					"""
+					df3=pd.read_sql(query3, con=engine)
+					if df3.empty:
+						fid.write(f'{comb[0]}\n')
+					val3= df3.loc[0, "source"]
+					query4 = f"""
+					SELECT
+						corresponds.source
+					FROM corresponds 
+					WHERE corresponds.scope = 'measure' AND corresponds.target = '{comb[1]}' 
+					"""
+					df4=pd.read_sql(query4, con=engine)
+					if df4.empty:
+						fid.write(f'{comb[1]}\n')
+					val4= df4.loc[0, 'source']
+					query5 = f"""
+					SELECT
+						correlations.value
+					FROM correlations 
+					WHERE correlations.scope = 'table3'  AND correlations.source = '{val3}' AND correlations.target =  '{val4}'
+					"""
+					df5=pd.read_sql(query5, con=engine)
+					if len(df5) == 0:
+						fid.write(f'δεν υπάρχει το {val3} ή {val4}\n')
+					else:
+						value= df5.loc[0, 'value']
+						if value == 0:
+							list_reports.append(f'Α/Α {key} : υπάρχει ασυμβατότητα μεταξύ {val3} και {val4}')
+
 	if status_1 == -1:
 		passed = 1
 		notes='Δεν έχουν δηλωθεί είτε Οικοσχήματα είτε Μέτρα '
+	elif status_1 == 0:
+		passed = 1
+		notes='Δεν υπάρχουν συνδυασμοί ανα Α/Α μεταξύ Οικοσχημάτων και Μέτρων'
 	else:
-		if status_2 == 1:
+		if len(list_reports)==0:
 			passed = 1
 			notes='Δεν υπάρχουν ασυμβατότητες μεταξύ Οικοσχημάτων και Μέτρων'
 		else:
 			passed = 0
-			s = "\n".join([" , ".join(sublist) for sublist in list_incomp])
-			notes='Υπάρχουν ασυμβατότητες μεταξύ Οικοσχημάτων και Μέτρων: ' + s
+			notes="\n".join(list_reports)
 
 	check_id = 11
 
@@ -795,9 +733,8 @@ def check_crop_ecoschemes_measures_incompatibility(id_key):
 				notes = '{notes}'
 			WHERE application_id = {id_key} AND check_id = {check_id}
 		"""))
-
+	fid.close()
 	return()
-
 
 # livestock_echoschemes_incompatibility
 def check_livestock_echoschemes_incompatibility(id_key):
@@ -889,7 +826,6 @@ def check_livestock_echoschemes_incompatibility(id_key):
 		"""))
 	return()
 
-
 # livestock_measures_incompatibility
 def check_livestock_measures_incompatibility(id_key):
 	query1 = f"""
@@ -980,7 +916,6 @@ def check_livestock_measures_incompatibility(id_key):
 
 	return()
 
-
 # livestock_ecoschemes_measures_incompatibility
 def check_livestock_ecoschemes_measures_incompatibility(id_key):
 	query1 = f"""
@@ -1045,17 +980,17 @@ def check_livestock_ecoschemes_measures_incompatibility(id_key):
 			"""
 			df5=pd.read_sql(query5, con=engine)
 			if len(df5) == 0:
-				status_2 = 1
-				print(df5)
+				status_2 = 0
+				# print(df5)
 				# print(val3)
 				# print(val4)
 			else:
 				value= df5.loc[0, 'value']
 				if value == 0:
-					status_2 = 0
+					status_2 = 1
 					list_incomp.append(comb)
 				else:
-					status_2 = 1
+					status_2 = 0
 	
 	if status_1 == -1:
 		passed = 1
@@ -1081,7 +1016,6 @@ def check_livestock_ecoschemes_measures_incompatibility(id_key):
 		"""))
 
 	return()
-
 
 # application_atak
 def check_application_atak(id_key):
@@ -1129,7 +1063,7 @@ def check_application_atak(id_key):
 		notes='Δεν έχουν δηλωθεί ATAK'
 	elif status_1 == 1:
 		passed = 1
-		notes='Δεν έχουν δηλωθεί όλα τα ATAK'
+		notes='Έχουν δηλωθεί όλα τα ATAK'
 	else:
 		passed = 0
 		notes = "\n".join(msmall)
@@ -1178,7 +1112,7 @@ for app_id in ids:
 	check_livestock_measures_incompatibility(app_id)
 	check_livestock_ecoschemes_measures_incompatibility(app_id)
 	check_application_atak(app_id)
-	# check_crop_connected(app_id)
+	check_crop_connected(app_id)
 
 print(len(ids))
 

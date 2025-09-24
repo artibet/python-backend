@@ -339,7 +339,36 @@ def liters(id_key, status):
     df = pd.read_sql(query, con=engine)
     return(df)
 
+def period_cost(year_key):
+    query = f"""
+    SELECT
+        period_economics.*
+    FROM period_economics
+    JOIN periods ON period_economics.period_id=periods.id
+    WHERE periods.year = '{year_key}' 
+    """
+    df = pd.read_sql(query, con=engine)
+    return(df)
 
+def measures_details(id_key):
+    query = f"""
+    SELECT
+        applications.afm,
+        applications.year,
+        measures.code AS code,
+        parcel_cultivations.area,
+        crop_types.code AS ctcode,
+        crop_types.poso
+    FROM applications
+    JOIN parcels ON applications.id = parcels.application_id
+    JOIN parcel_cultivations ON parcel_cultivations.parcel_id = parcels.id
+    JOIN varieties ON varieties.id = parcel_cultivations.variety_id
+    JOIN crop_types ON crop_types.id = varieties.crop_type_id
+    JOIN measures ON measures.parcel_id = parcels.id
+    WHERE applications.id = '{id_key}' AND measures.code NOT IN ('13.1','13.2','13.3')
+    ORDER BY applications.afm, measures.code
+    """
+    return(pd.read_sql(query, con=engine))
 
 
 
@@ -377,10 +406,13 @@ def get_economics(application_id):
   sum_d_f = p_c_f+st_c_f+eq_c_f
   sum_d = sum_d_f/1.24
 
+  df9=period_cost(year_key)
+  ecoscheme_pc=df9.loc[0,'ecoscheme_pc']
+
   df2=fun_ecos(application_id)
   if df2 is None or df2.empty:
       ecoschemes = []   # κενό -> θα εμφανίσουμε "----" στο template
-      ecos_total = []
+      ecos_total = 0
   else:
       df2 = df2[['code', 'area_per_eco']].copy()
       # Στήλη με χρέωση
@@ -393,7 +425,11 @@ def get_economics(application_id):
       df2['cost'] = df2['cost'].apply(eur_gr)
       df2['total_cost'] = df2['total_cost'].apply(eur_gr)
       ecoschemes = df2.to_dict(orient="records")
+      ecos_c= ecos_total*ecoscheme_pc/100
+      ecos_c_f= (ecos_total*ecoscheme_pc/100) * 1.24
       ecos_total = eur_gr(ecos_total)
+      ecos_c = eur_gr(ecos_c)
+      ecos_c_f = eur_gr(ecos_c_f)
   # if df2.empty:
   #     ecoschemes="----"
   # else:
@@ -476,6 +512,15 @@ def get_economics(application_id):
   
   df8=liters(application_id,0)
 
+
+
+
+
+
+
+  df10 = measures_details(application_id)
+  measures_cost= (df10['area'] * df10['poso']).sum()
+  print(measures_cost)  
 ##
   data = {
       'firstname': df1.loc[0,'firstname'],
@@ -514,6 +559,8 @@ def get_economics(application_id):
 ##
       'ecoschemes': ecoschemes,
       'ecos_total': ecos_total,
+      'ecos_c': ecos_c,
+      'ecos_c_f': ecos_c_f,
       'equals_parcels': equals_parcels,
       'equals_parcels_total': equals_parcels_total,
       'equals_stables': equals_stables,
