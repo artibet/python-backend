@@ -7,7 +7,7 @@ from datetime import date
 from docxtpl import DocxTemplate
 from agriman.database import get_engine
 
-def get_symvasi(application_id):
+def get_symvasi_farm_b(application_id):
 
   engine = get_engine()
 

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request
 from agriman.functions.symvasi import get_symvasi
+from agriman.functions.symvasifarmB import get_symvasi_farm_b
 from agriman.functions.stats_users import get_stats_users
 from agriman.functions.pagia import get_pagia
 from agriman.functions.economics import get_economics
@@ -22,6 +23,19 @@ async def symvasi(request: Request):
 
   # Call the function to create and return the symvasi.docx
   return get_symvasi(application_id)
+
+# -----------------------------------------------------------------------------
+# symvasi-farm-b.docx
+# -----------------------------------------------------------------------------
+@router.post('/symvasi-farm-b')
+async def symvasiFarmB(request: Request):
+  
+  # get application_id from request
+  body = await request.json()
+  application_id = body.get('application_id')
+
+  # Call the function to create and return the symvasi.docx
+  return get_symvasi_farm_b(application_id)
 
 # -----------------------------------------------------------------------------
 # users stats
