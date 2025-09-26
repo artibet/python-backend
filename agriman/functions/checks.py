@@ -493,7 +493,7 @@ def check_crop_echoschemes_incompatibility(id_key):
 				"""
 				df3=pd.read_sql(query3, con=engine)
 				if df3.empty:
-					fid.write(f'{comb[0]}\n')
+					fid.write(f'Not exist {comb[0]} in corresponds\n')
 					continue
 				val3= df3.loc[0, "source"]
 				query4 = f"""
@@ -504,7 +504,7 @@ def check_crop_echoschemes_incompatibility(id_key):
 				"""
 				df4=pd.read_sql(query4, con=engine)
 				if df4.empty:
-					fid.write(f'{comb[1]}\n')
+					fid.write(f'Not exist {comb[1]} in corresponds\n')
 					continue
 				val4= df4.loc[0, 'source']
 				query5 = f"""
@@ -515,7 +515,7 @@ def check_crop_echoschemes_incompatibility(id_key):
 				"""
 				df5=pd.read_sql(query5, con=engine)
 				if len(df5) == 0:
-					fid.write(f'δεν υπάρχει το {val3} ή {val4}\n')
+					fid.write(f'Not exist {val3} or {val4} in correlations \n')
 				else:
 					value= df5.loc[0, 'value']
 					if value == 0:
@@ -581,7 +581,7 @@ def check_crop_measures_incompatibility(id_key):
 				"""
 				df3=pd.read_sql(query3, con=engine)
 				if df3.empty:
-					fid.write(f'{comb[0]}\n')
+					fid.write(f'Not exist {comb[0]} in corresponds\n')
 					continue
 				val3= df3.loc[0, "source"]
 				query4 = f"""
@@ -592,7 +592,7 @@ def check_crop_measures_incompatibility(id_key):
 				"""
 				df4=pd.read_sql(query4, con=engine)
 				if df4.empty:
-					fid.write(f'{comb[1]}\n')
+					fid.write(f'Not exist {comb[1]} in corresponds\n')
 					continue
 				val4= df4.loc[0, 'source']
 				query5 = f"""
@@ -603,7 +603,7 @@ def check_crop_measures_incompatibility(id_key):
 				"""
 				df5=pd.read_sql(query5, con=engine)
 				if len(df5) == 0:
-					fid.write(f'δεν υπάρχει το {val3} ή {val4}\n')
+					fid.write(f'Not exist {val3} or {val4} in correlations\n')
 				else:
 					value= df5.loc[0, 'value']
 					if value == 0:
@@ -687,7 +687,7 @@ def check_crop_ecoschemes_measures_incompatibility(id_key):
 					"""
 					df3=pd.read_sql(query3, con=engine)
 					if df3.empty:
-						fid.write(f'{comb[0]}\n')
+						fid.write(f'Not exist {comb[0]} in corresponds\n')
 						continue
 					val3= df3.loc[0, "source"]
 					query4 = f"""
@@ -698,7 +698,7 @@ def check_crop_ecoschemes_measures_incompatibility(id_key):
 					"""
 					df4=pd.read_sql(query4, con=engine)
 					if df4.empty:
-						fid.write(f'{comb[1]}\n')
+						fid.write(f'Not exist {comb[1]} corresponds\n')
 						continue
 					val4= df4.loc[0, 'source']
 					query5 = f"""
@@ -709,7 +709,7 @@ def check_crop_ecoschemes_measures_incompatibility(id_key):
 					"""
 					df5=pd.read_sql(query5, con=engine)
 					if len(df5) == 0:
-						fid.write(f'δεν υπάρχει το {val3} ή {val4}\n')
+						fid.write(f'Not exist {val3} or {val4} in correlations\n')
 					else:
 						value= df5.loc[0, 'value']
 						if value == 0:
@@ -744,6 +744,7 @@ def check_crop_ecoschemes_measures_incompatibility(id_key):
 
 # livestock_echoschemes_incompatibility
 def check_livestock_echoschemes_incompatibility(id_key):
+	fid=open('log_check_livestock_echoschemes_incompatibility.txt','a')
 	query1 = f"""
 	SELECT
 		applications.afm,
@@ -796,7 +797,8 @@ def check_livestock_echoschemes_incompatibility(id_key):
 				"""
 				df5=pd.read_sql(query5, con=engine)
 				if len(df5) == 0:
-					status_2 = 1
+					status_2 = 0
+					fid.write(f'Not exist {comb[0]} or {comb[1]} in correlations\n')
 				else:
 					value= df5.loc[0, 'value']
 					if value == 0:
@@ -830,10 +832,12 @@ def check_livestock_echoschemes_incompatibility(id_key):
 				notes = '{notes}'
 			WHERE application_id = {id_key} AND check_id = {check_id}
 		"""))
+	fid.close()
 	return()
 
 # livestock_measures_incompatibility
 def check_livestock_measures_incompatibility(id_key):
+	fid=open('log_check_livestock_measures_incompatibility.txt','a')
 	query1 = f"""
     SELECT
         applications.afm,
@@ -885,7 +889,8 @@ def check_livestock_measures_incompatibility(id_key):
 				"""
 				df5=pd.read_sql(query5, con=engine)
 				if len(df5) == 0:
-					status_2 = 1
+					status_2 = 0
+					fid.write(f'Not exist {comb[0]} or {comb[1]} in correlations\n')
 				else:
 					value= df5.loc[0, 'value']
 					if value == 0:
@@ -919,11 +924,12 @@ def check_livestock_measures_incompatibility(id_key):
 				notes = '{notes}'
 			WHERE application_id = {id_key} AND check_id = {check_id}
 		"""))
-
+	fid.close()
 	return()
 
 # livestock_ecoschemes_measures_incompatibility
 def check_livestock_ecoschemes_measures_incompatibility(id_key):
+	fid=open('log_check_livestock_ecoschemes_measures_incompatibility.txt','a')
 	query1 = f"""
 	SELECT
 		applications.afm,
@@ -987,9 +993,7 @@ def check_livestock_ecoschemes_measures_incompatibility(id_key):
 			df5=pd.read_sql(query5, con=engine)
 			if len(df5) == 0:
 				status_2 = 0
-				# print(df5)
-				# print(val3)
-				# print(val4)
+				fid.write(f'Not exist {comb[0]} or {comb[1]} in correlations\n')
 			else:
 				value= df5.loc[0, 'value']
 				if value == 0:
@@ -1020,7 +1024,7 @@ def check_livestock_ecoschemes_measures_incompatibility(id_key):
 				notes = '{notes}'
 			WHERE application_id = {id_key} AND check_id = {check_id}
 		"""))
-
+	fid.close()
 	return()
 
 # application_atak
