@@ -7,7 +7,7 @@ from datetime import date
 from docxtpl import DocxTemplate
 from agriman.database import get_engine
 
-def get_symvasi_farm_b(application_id):
+def get_sitiresio(application_id):
 
   engine = get_engine()
 
@@ -22,7 +22,7 @@ def get_symvasi_farm_b(application_id):
   """
   df=pd.read_sql(query, con=engine)
 
-  doc = DocxTemplate("./agriman/templates/symvasifarmB.docx")
+  doc = DocxTemplate("./agriman/templates/sitiresio.docx")
   context ={
     'firstname' : df.loc[0,'firstname'],
     'lastname' : df.loc[0,'lastname'],
@@ -42,6 +42,6 @@ def get_symvasi_farm_b(application_id):
     buffer,
     media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     headers={
-       "Content-Disposition": f"attachment; filename=symvasi_{application_id}.docx"
+       "Content-Disposition": f"attachment; filename=sitiresio_{application_id}.docx"
     }
   )

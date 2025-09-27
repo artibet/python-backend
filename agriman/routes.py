@@ -4,6 +4,7 @@ from agriman.functions.symvasifarmB import get_symvasi_farm_b
 from agriman.functions.stats_users import get_stats_users
 from agriman.functions.pagia import get_pagia
 from agriman.functions.economics import get_economics
+from agriman.functions.sitiresio import get_sitiresio
 
 # Create the router
 router = APIRouter (
@@ -34,8 +35,21 @@ async def symvasiFarmB(request: Request):
   body = await request.json()
   application_id = body.get('application_id')
 
-  # Call the function to create and return the symvasi.docx
+  # Call the function to create and return the symvasi_farmB.docx
   return get_symvasi_farm_b(application_id)
+
+# -----------------------------------------------------------------------------
+# symvasi-farm-b.docx
+# -----------------------------------------------------------------------------
+@router.post('/sitiresio')
+async def sitiresio(request: Request):
+  
+  # get application_id from request
+  body = await request.json()
+  application_id = body.get('application_id')
+
+  # Call the function to create and return the sitiresio.docx
+  return get_sitiresio(application_id)
 
 # -----------------------------------------------------------------------------
 # users stats

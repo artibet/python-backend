@@ -42,6 +42,6 @@ def get_symvasi_farm_b(application_id):
     buffer,
     media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     headers={
-       "Content-Disposition": f"attachment; filename=symvasi_{application_id}.docx"
+       "Content-Disposition": f"attachment; filename=symvasi_farmB_{application_id}.docx"
     }
   )
