@@ -3,6 +3,8 @@ from sqlalchemy import text
 import pandas as pd
 from datetime import date
 
+import json
+
 import itertools
 
 from openpyxl import load_workbook
@@ -458,7 +460,7 @@ def check_crop_connected(id_key):
 	return()
 
 def check_crop_echoschemes_incompatibility(id_key):
-	fid=open('log_check_crop_echoschemes_incompatibility.txt','a')
+	fid=open('log_check_crop_echoschemes_incompatibility.txt','w')
 	query1 = f"""
 	SELECT
 		applications.afm,
@@ -472,7 +474,6 @@ def check_crop_echoschemes_incompatibility(id_key):
 	ORDER BY parcels.code
 	"""
 	df1=pd.read_sql(query1, con=engine)
-
 	if len(df1) == 0:
 		status_1 = -1
 	else:
@@ -547,7 +548,7 @@ def check_crop_echoschemes_incompatibility(id_key):
 
 # crop_measures_incompatibility
 def check_crop_measures_incompatibility(id_key):
-	fid=open('log_check_crop_measures_incompatibility.txt','a')
+	fid=open('log_check_crop_measures_incompatibility.txt','w')
 	query1 = f"""
     SELECT
         applications.afm,
@@ -635,7 +636,7 @@ def check_crop_measures_incompatibility(id_key):
 
 # crop_ecoschemes_measures_incompatibility
 def check_crop_ecoschemes_measures_incompatibility(id_key):
-	fid=open('log_check_crop_ecoschemes_measures_incompatibility.txt','a')
+	fid=open('log_check_crop_ecoschemes_measures_incompatibility.txt','w')
 	query1 = f"""
 	SELECT
 		applications.afm,
@@ -744,7 +745,7 @@ def check_crop_ecoschemes_measures_incompatibility(id_key):
 
 # livestock_echoschemes_incompatibility
 def check_livestock_echoschemes_incompatibility(id_key):
-	fid=open('log_check_livestock_echoschemes_incompatibility.txt','a')
+	fid=open('log_check_livestock_echoschemes_incompatibility.txt','w')
 	query1 = f"""
 	SELECT
 		applications.afm,
@@ -756,11 +757,11 @@ def check_livestock_echoschemes_incompatibility(id_key):
 	ORDER BY application_ecoschemes.code
 	"""
 	df1=pd.read_sql(query1, con=engine)
-
 	if len(df1) == 0:
 		status_1 = -1
 	else:
-		df1['code']=df1['code'].str[3:]
+		df1['code'] = df1['code'].str[3:]
+		df1['code'] = df1['code'].replace("31.9-Β", "31.9")
 		eco_list = df1["code"].tolist()
 		if len(eco_list) == 1:
 			status_1 = 0
@@ -820,7 +821,7 @@ def check_livestock_echoschemes_incompatibility(id_key):
 		else:
 			passed = 0
 			s = "\n".join([" , ".join(sublist) for sublist in list_incomp])
-			notes='Υπάρχουν ασυμβατότητες μεταξύ των Οικοσχημάτων: ' + s
+			notes='Υπάρχουν ασυμβατότητες μεταξύ των Οικοσχημάτων: \n' + s
 
 	check_id = 13
 
@@ -837,7 +838,7 @@ def check_livestock_echoschemes_incompatibility(id_key):
 
 # livestock_measures_incompatibility
 def check_livestock_measures_incompatibility(id_key):
-	fid=open('log_check_livestock_measures_incompatibility.txt','a')
+	fid=open('log_check_livestock_measures_incompatibility.txt','w')
 	query1 = f"""
     SELECT
         applications.afm,
@@ -929,7 +930,7 @@ def check_livestock_measures_incompatibility(id_key):
 
 # livestock_ecoschemes_measures_incompatibility
 def check_livestock_ecoschemes_measures_incompatibility(id_key):
-	fid=open('log_check_livestock_ecoschemes_measures_incompatibility.txt','a')
+	fid=open('log_check_livestock_ecoschemes_measures_incompatibility.txt','w')
 	query1 = f"""
 	SELECT
 		applications.afm,
@@ -957,6 +958,7 @@ def check_livestock_ecoschemes_measures_incompatibility(id_key):
 		status_1 = -1
 	else:
 		df1['code']=df1['code'].str[3:]
+		df1['code'] = df1['code'].replace("31.9-Β", "31.9")
 		eco_list = df1["code"].tolist()
 		df2['code']=df1['code'].str[3:]
 		meas_list = df2["code"].tolist()
@@ -1091,6 +1093,87 @@ def check_application_atak(id_key):
 
 	return()
 
+# application_connected_documents
+def check_application_connected_documents(id_key):
+	query1 = f"""
+	SELECT
+		applications.afm,
+		applications.year,
+		parcels.code AS aa,
+		support_schemes.code AS code
+	FROM applications
+	JOIN parcels ON parcels.application_id = applications.id
+	JOIN contracts ON contracts.parcel_id = parcels.id
+	JOIN parcel_cultivations ON parcels.id = parcel_cultivations.parcel_id
+	JOIN support_varieties ON support_varieties.variety_id = parcel_cultivations.variety_id
+	JOIN supports ON supports.id = support_varieties.support_id
+	LEFT OUTER JOIN support_schemes ON support_schemes.parcel_cultivation_id = parcel_cultivations.id
+	WHERE applications.id = '{id_key}' AND supports.period_id = applications.period_id 
+	AND support_schemes.code IN ('0501','0114')
+	ORDER BY parcels.code
+	"""
+	df1 = pd.read_sql(query1, con=engine)
+	if len(df1) == 0:
+		status_1 = -1
+	else:
+		status_1 = 0
+		query2 = f"""
+		SELECT
+			applications.afm,
+			applications.year,
+			applications.json
+		FROM applications
+		WHERE applications.id = '{id_key}'
+		"""
+		df2 = pd.read_sql(query2, con=engine)
+		df2["parsed"] = df2["json"].apply(json.loads)
+		df2["doc_codes"] = df2["parsed"].apply(lambda x: [d["document_type_code"] for d in x.get("application_document_list", [])])
+		scodes = df1["code"].unique().tolist()
+		type_codes=df2.loc[0,'doc_codes']
+		msm=[]
+		status_2 = 0
+		for scode in scodes:
+			if scode == '0114':
+				if (178 in type_codes): 
+					status_2 = 1
+					msm.append('Δεν έχει δηλωθεί το 178')
+				if (179 in type_codes): 
+					status_2 = 1
+					msm.append('Δεν έχει δηλωθεί το 179')
+			if scode == '0501':
+				if (7 in type_codes): 
+					status_2 = 1
+					msm.append('Δεν έχει δηλωθεί το 7')
+				if (64 in type_codes): 
+					status_2 = 1
+					msm.append('Δεν έχει δηλωθεί το 64')
+
+	if status_1 == -1:
+		passed = 1
+		notes='Δεν έχουν δηλωθεί συνδεδεμένες 0114 ή 0501'
+	else:
+		if status_2 == 0:
+			passed = 1
+			notes = 'Έχουν δηλωθεί τα δικαολογητικά για συνδεδεμένες 0114 ή 0501'
+		elif status_2 == 1:
+			passed = 0
+			notes = "\n".join(msm)
+			print(scodes)
+			print(type_codes)
+
+	check_id = 17
+
+	with engine.begin() as conn:
+		conn.execute(text(f"""
+			UPDATE application_checks
+			SET checked_at = UTC_TIMESTAMP(),
+				passed = {passed},
+				notes = '{notes}'
+			WHERE application_id = {id_key} AND check_id = {check_id}
+		"""))
+
+	return()
+
 
 query = f"""
 SELECT
@@ -1104,8 +1187,27 @@ if df.empty:
 else:
 	ids = df['id']
 
-# check_crop_connected(78047)
-# check_crop_connected(78060)
+
+# app_id=102583
+# check_esap(app_id)
+# check_pasture_mmz(app_id)
+# check_corn_irrigation(app_id)
+# check_national_reserve(app_id)
+# check_young_farmers(app_id)
+# check_application_ecoschemes(app_id)
+# check_crop_echoschemes_incompatibility(app_id)
+# check_crop_measures_incompatibility(app_id)
+# check_crop_ecoschemes_measures_incompatibility(app_id)
+# check_livestock_echoschemes_incompatibility(app_id)
+# check_livestock_measures_incompatibility(app_id)
+# check_livestock_ecoschemes_measures_incompatibility(app_id)
+# check_application_atak(app_id)
+# check_crop_connected(app_id)
+
+
+
+
+
 
 
 for app_id in ids:
@@ -1123,6 +1225,7 @@ for app_id in ids:
 	check_livestock_ecoschemes_measures_incompatibility(app_id)
 	check_application_atak(app_id)
 	check_crop_connected(app_id)
+	check_application_connected_documents(app_id)
 
 print(len(ids))
 
