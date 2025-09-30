@@ -1,5 +1,7 @@
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
+from sqlalchemy import text
+import pandas as pd
 import os
 
 # load .env file
@@ -12,5 +14,39 @@ DB_NAME = os.getenv("AGRIMAN_DB_NAME")
 
 engine = create_engine(f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}")
 
+'''
+Return the created database engine
+'''
 def get_engine():
   return engine
+
+'''
+Update application_checks table
+'''
+def update_application_checks(app_id, tag, passed, notes):
+
+  # Get check_id from tag
+  query = text("""
+    SELECT  id
+    FROM checks
+    WHERE tag = :tag
+  """)
+  df=pd.read_sql(query, con=engine, params={'tag': tag})
+  if df.empty:
+    print("No check with tag {tag}")
+    return
+  else:
+    check_id = df['id'].iloc[0]
+
+  # Update
+  with engine.begin() as conn:
+    conn.execute(text("""
+      UPDATE application_checks
+      SET checked_at = UTC_TIMESTAMP(),
+      passed = :passed,
+      notes = :notes
+      WHERE application_id = :app_id AND check_id = :check_id
+    """), {'passed': passed, 'notes': notes, 'app_id': app_id, 'check_id': check_id})
+
+
+
