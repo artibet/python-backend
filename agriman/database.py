@@ -2,6 +2,8 @@ from sqlalchemy import create_engine
 from dotenv import load_dotenv
 from sqlalchemy import text
 import pandas as pd
+import math
+import numpy as np
 import os
 
 # load .env file
@@ -33,7 +35,7 @@ def update_application_checks(app_id, tag, passed, notes):
   """)
   df=pd.read_sql(query, con=engine, params={'tag': tag})
   if df.empty:
-    print("No check with tag {tag}")
+    print(f"No check with tag {tag}")
     return
   else:
     check_id = df['id'].iloc[0]
@@ -48,5 +50,15 @@ def update_application_checks(app_id, tag, passed, notes):
       WHERE application_id = :app_id AND check_id = :check_id
     """), {'passed': passed, 'notes': notes, 'app_id': app_id, 'check_id': check_id})
 
-
+'''
+Convert NaN numpy values to None
+'''
+def sql_safe(value):
+  if value is None:
+      return None
+  if isinstance(value, float) and math.isnan(value):
+      return None
+  if isinstance(value, (np.floating, np.integer)) and np.isnan(value):
+      return None
+  return value
 

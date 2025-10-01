@@ -1,7 +1,8 @@
 from sqlalchemy import text
 import pandas as pd
 import itertools
-from agriman.database import get_engine, update_application_checks
+from agriman.database import get_engine, update_application_checks, sql_safe
+
 
 def check_crop_ecoschemes_incompatibility(id_key):
 	tag = 'crop_echoschemes_incompatibility'
@@ -39,7 +40,7 @@ def check_crop_ecoschemes_incompatibility(id_key):
 					FROM corresponds 
 					WHERE corresponds.scope = 'ecoscheme' AND corresponds.target = :comb 
 				""")
-				df3=pd.read_sql(query3, con=engine, params={'comb': comb[0]})
+				df3=pd.read_sql(query3, con=engine, params={'comb': sql_safe(comb[0])})
 				if df3.empty:
 					fid.write(f'Not exist {comb[0]} in corresponds\n')
 					continue
@@ -50,7 +51,7 @@ def check_crop_ecoschemes_incompatibility(id_key):
 					FROM corresponds 
 					WHERE corresponds.scope = 'ecoscheme' AND corresponds.target = :comb 
 				""")
-				df4=pd.read_sql(query4, con=engine, params={'comb': comb[1]})
+				df4=pd.read_sql(query4, con=engine, params={'comb': sql_safe(comb[1])})
 				if df4.empty:
 					fid.write(f'Not exist {comb[1]} in corresponds\n')
 					continue
