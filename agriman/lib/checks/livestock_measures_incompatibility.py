@@ -1,7 +1,7 @@
 from sqlalchemy import text
 import pandas as pd
 import itertools
-from agriman.database import get_engine, update_application_checks
+from agriman.database import get_engine, update_application_checks, sql_safe
 
 def check_livestock_measures_incompatibility(id_key):
 	tag = 'livestock_measures_incompatibility'
@@ -58,7 +58,7 @@ def check_livestock_measures_incompatibility(id_key):
 					FROM correlations 
 					WHERE correlations.scope = 'table4'  AND correlations.source = :comb0 AND correlations.target = :comb1
 				""")
-				df5=pd.read_sql(query5, con=engine, params={'comb0': comb[0], 'comb1': comb[1]})
+				df5=pd.read_sql(query5, con=engine, params={'comb0': sql_safe(comb[0]), 'comb1': sql_safe(comb[1])})
 				if len(df5) == 0:
 					status_2 = 0
 					fid.write(f'Not exist {comb[0]} or {comb[1]} in correlations\n')
