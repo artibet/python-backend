@@ -11,6 +11,7 @@ import numpy as np
 import json
 
 
+
 def find_parcel_cost(value, parcel_costs):
   for i in range(len(parcel_costs)):
     if value >= parcel_costs[i][0] and value <= parcel_costs[i][1]:
@@ -33,7 +34,7 @@ def compute_cost(row, parcel_costs):
 
 
 def get_stats_users(period_id):
-
+  owner_subs_code = 'ΠΥΛΗΑ Α. ΚΑΡΑΙΒΑΖΙΔΗΣ Α. ΜΑΛΛΙΑΡΑΣ Α ΚΑΡΑΛΗΣ & ΣΙΑ ΟΕ'
   engine = get_engine()
   query0 = f"""
   SELECT
@@ -52,7 +53,8 @@ def get_stats_users(period_id):
     applications.year,
     applications.book_number
   FROM applications
-  WHERE applications.period_id = {period_id}
+  WHERE applications.period_id = {period_id} AND
+  applications.owner_subs_code = '{owner_subs_code}'
   """
   df1 = pd.read_sql(query1, con=engine)
   ## Μετατροπή book_number σε string και αφαίρεση κενών
@@ -70,7 +72,8 @@ def get_stats_users(period_id):
     COUNT(*) AS num_parcels
   FROM parcels 
   JOIN applications ON applications.id = parcels.application_id
-  WHERE applications.period_id = {period_id} AND parcels.is_pasture = 0
+  WHERE applications.period_id = {period_id} AND parcels.is_pasture = 0 AND
+  applications.owner_subs_code = '{owner_subs_code}'
   GROUP BY parcels.application_id
   ORDER BY applications.afm, parcels.application_id
   """
@@ -82,7 +85,8 @@ def get_stats_users(period_id):
     COUNT(*) AS num_stables
   FROM stables 
   JOIN applications ON applications.id = stables.application_id
-  WHERE applications.period_id = {period_id} 
+  WHERE applications.period_id = {period_id} AND
+  applications.owner_subs_code = '{owner_subs_code}'
   GROUP BY stables.application_id
   ORDER BY applications.afm, stables.application_id
   """
@@ -94,7 +98,8 @@ def get_stats_users(period_id):
     COUNT(*) AS num_equals
   FROM application_measures 
   JOIN applications ON applications.id = application_measures.application_id
-  WHERE applications.period_id = {period_id} AND application_measures.code IN ('13.1','13.2','13.3')
+  WHERE applications.period_id = {period_id} AND application_measures.code IN ('13.1','13.2','13.3') AND
+  applications.owner_subs_code = '{owner_subs_code}'
   GROUP BY application_measures.application_id
   ORDER BY applications.afm, application_measures.application_id
   """
