@@ -65,6 +65,19 @@ async def stats_users(request: Request):
   return get_stats_users(period_id)
 
 # -----------------------------------------------------------------------------
+# economics stats
+# -----------------------------------------------------------------------------
+@router.post('/stats/economics')
+async def stats_economics(request: Request):
+
+  # get period_id from request
+  body = await request.json()
+  period_id = body.get('period_id')
+
+  # Call the function to create and return the user stats
+  return get_stats_economics(period_id)
+
+# -----------------------------------------------------------------------------
 # pagia.docx
 # -----------------------------------------------------------------------------
 @router.post('/pagia')
