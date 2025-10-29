@@ -75,7 +75,7 @@ async def stats_economics(request: Request):
   period_id = body.get('period_id')
 
   # Call the function to create and return the user stats
-  return get_stats_economics(period_id)
+  # return get_stats_economics(period_id)
 
 # -----------------------------------------------------------------------------
 # pagia.docx

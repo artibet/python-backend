@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from agriman.routes import router as agriman_router
+from katanomi.routes import router as katanomi_router
 
 # Create and initialize fastapi server
 app = FastAPI()
@@ -15,3 +16,4 @@ app.add_middleware(
 
 # load the routers
 app.include_router(agriman_router)
+app.include_router(katanomi_router)
