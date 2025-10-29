@@ -19,7 +19,7 @@ from agriman.lib.checks.livestock_ecoschemes_measures_incompatibility import che
 from agriman.lib.checks.application_atak import check_application_atak
 from agriman.lib.checks.crop_connected import check_crop_connected
 from agriman.lib.checks.application_connected_documents import check_application_connected_documents
-
+from agriman.lib.checks.application_sublease import check_application_sublease
 
 # Get the database engine
 engine = get_engine()
@@ -49,5 +49,5 @@ check_livestock_ecoschemes_measures_incompatibility(app_id)
 check_application_atak(app_id)
 check_crop_connected(app_id)
 check_application_connected_documents(app_id)
-
+check_application_sublease(app_id)
 
