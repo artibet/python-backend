@@ -1,14 +1,8 @@
-from docx import Document
-
+from sqlalchemy import text
 
 import pandas as pd
-from openpyxl import load_workbook
-from sqlalchemy import create_engine
-from functools import reduce
 from katanomi.database import get_engine
-import numpy as np
 import json
-
 
 
 # def find_parcel_cost(value, parcel_costs):
@@ -34,15 +28,15 @@ import json
 
 def get_stats_cpv_reqs(period_id):
   engine = get_engine()
-  query0 = f"""
+  query0 = text("""
   SELECT
     periods.descr
   FROM periods
-  WHERE periods.id = {period_id}
-  """
-  df0 = pd.read_sql(query0, con=engine)
-  etos=df0.loc[0,'year']
-  query1 = f"""
+  WHERE periods.id = :period_id
+  """)
+  df0=pd.read_sql(query0, con=engine, params={'period_id': period_id})
+
+  query1 = text("""
   SELECT
     aitimata.period_id,
     aitimata.status_id,
@@ -52,14 +46,18 @@ def get_stats_cpv_reqs(period_id):
     arecs.admin_cpv_id,
     arecs.kae_id,
     arecs.net_total_cost,
-    arecs.in_cpv_sum
+    arecs.in_cpv_sum,
+    cpvs.code as cpv_code,
+    cpvs.descr as cpv_descr            
   FROM aitimata 
   JOIN arecs ON arecs.aitima_id = aitimata.id
-  WHERE aitimata.period_id = {period_id}
-  """
-  df1 = pd.read_sql(query1, con=engine)
+  JOIN cpvs ON cpvs.id = arecs.admin_cpv_id
+  WHERE aitimata.period_id = :period_id 
+  AND aitimata.status_id > 100 
+  """)
+
+  df1=pd.read_sql(query1, con=engine, params={'period_id': period_id})
   
-  print(df1)
 #   ## Μετατροπή book_number σε string και αφαίρεση κενών
 #   df1['book_number'] = df1['book_number'].astype(str).str.strip()
 
@@ -138,24 +136,28 @@ def get_stats_cpv_reqs(period_id):
 #   num_cols = ['num_parcels', 'num_stables', 'num_equals', 'final_cost']
 #   df_final[num_cols] = df_final[num_cols].apply(pd.to_numeric, errors='coerce').fillna(0)
 
-#   grouped = (
-#     df_final.groupby('book_number')
-#       .agg(
-#         num_parcels_sum = ('num_parcels', 'sum'),
-#         num_stables_sum = ('num_stables', 'sum'),
-#         num_equals_sum  = ('num_equals',  'sum'),
-#         final_cost_sum  = ('final_cost',  'sum'),
-#         afm_count       = ('afm', 'nunique'),                 # πλήθος μοναδικών AFM
-#         status_0        = ('status_id', lambda s: (s==0).sum()),
-#         status_1        = ('status_id', lambda s: (s==1).sum())
-#       )
-#       .reset_index()
-#   )
+  grouped = (
+    df1.groupby('cpv_code')
+      .agg(
+        total_aa = (
+          'net_total_cost',
+          lambda s: s[
+              (df1.loc[s.index, 'status_id'] >= 101)
+              & (df1.loc[s.index, 'status_id'] < 200)
+          ].sum()
+        ),
 
-#   stats = grouped.to_json(orient="records", force_ascii=False)
+       total_diag = ('net_total_cost', lambda s: s[df1.loc[s.index, 'status_id'] == 201].sum()),
+       total_other = ('net_total_cost', lambda s: s[df1.loc[s.index, 'status_id'] == 301].sum()),
+       total_rejected = ('net_total_cost', lambda s: s[df1.loc[s.index, 'status_id'] == 401].sum())
+      )
+      .reset_index()
+  )
 
-#   # Μετατροπή σε Python object (λίστα από dicts)
-#   stats = json.loads(stats)
+  stats = grouped.to_json(orient="records", force_ascii=False)
 
-#   # Return stats as json 
-#   return stats
+  # Μετατροπή σε Python object (λίστα από dicts)
+  stats = json.loads(stats)
+
+  # # Return stats as json 
+  return stats
