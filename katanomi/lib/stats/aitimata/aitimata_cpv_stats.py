@@ -26,7 +26,7 @@ import json
 #     return cost
 
 
-def get_stats_cpv_reqs(period_id):
+def get_aitimata_cpv_stats(period_id):
   engine = get_engine()
   query0 = text("""
   SELECT
@@ -137,7 +137,7 @@ def get_stats_cpv_reqs(period_id):
 #   df_final[num_cols] = df_final[num_cols].apply(pd.to_numeric, errors='coerce').fillna(0)
 
   grouped = (
-    df1.groupby('cpv_code')
+    df1.groupby(['cpv_code', 'cpv_descr'])
       .agg(
         total_aa = (
           'net_total_cost',
