@@ -1,4 +1,4 @@
-from katanomi.lib.stats.aitimata.aitimata_cpv_stats import get_stats_cpv_reqs
+from katanomi.lib.stats.aitimata.aitimata_cpv_stats import get_aitimata_cpv_stats
 
 
-print(get_stats_cpv_reqs(6))
+print(get_aitimata_cpv_stats(6))

@@ -57,86 +57,27 @@ def get_aitimata_cpv_stats(period_id):
   """)
 
   df1=pd.read_sql(query1, con=engine, params={'period_id': period_id})
+
+  query2 = text("""
+  SELECT
+    adeps.period_id,
+    commitments.status_id,
+    commitments.admin_cpv_id,
+    commitments.kae_id,
+    commitments.net_total_cost,
+    cpvs.code as cpv_code,
+    cpvs.descr as cpv_descr            
+  FROM adeps 
+  JOIN commitments ON adeps.id = commitments.adep_id
+  JOIN cpvs ON cpvs.id = commitments.admin_cpv_id
+  WHERE adeps.period_id = :period_id 
+  AND commitments.status_id in (2,3,4)
+  """)
+
+  df2=pd.read_sql(query2, con=engine, params={'period_id': period_id})  
   
-#   ## Μετατροπή book_number σε string και αφαίρεση κενών
-#   df1['book_number'] = df1['book_number'].astype(str).str.strip()
-
-#   etos=str(etos)
-#   etos=etos[-2:]
-#   str_book=etos+'02'
-#   ## Αντικατάσταση όλων των book_number που ξεκινούν από 2502 με την τιμή '2502'
-#   df1['book_number'] = df1['book_number'].apply(lambda x: str_book+'*' if x.startswith(str_book) else x)
-
-#   query2 = f"""
-#   SELECT
-#     applications.afm,
-#     COUNT(*) AS num_parcels
-#   FROM parcels 
-#   JOIN applications ON applications.id = parcels.application_id
-#   WHERE applications.period_id = {period_id} AND parcels.is_pasture = 0 AND
-#   applications.owner_subs_code = '{owner_subs_code}'
-#   GROUP BY parcels.application_id
-#   ORDER BY applications.afm, parcels.application_id
-#   """
-#   df2 = pd.read_sql(query2, con=engine)
-
-#   query3 = f"""
-#   SELECT
-#     applications.afm,
-#     COUNT(*) AS num_stables
-#   FROM stables 
-#   JOIN applications ON applications.id = stables.application_id
-#   WHERE applications.period_id = {period_id} AND
-#   applications.owner_subs_code = '{owner_subs_code}'
-#   GROUP BY stables.application_id
-#   ORDER BY applications.afm, stables.application_id
-#   """
-#   df3 = pd.read_sql(query3, con=engine)
-
-#   query4 = f"""
-#   SELECT
-#     applications.afm,
-#     COUNT(*) AS num_equals
-#   FROM application_measures 
-#   JOIN applications ON applications.id = application_measures.application_id
-#   WHERE applications.period_id = {period_id} AND application_measures.code IN ('13.1','13.2','13.3') AND
-#   applications.owner_subs_code = '{owner_subs_code}'
-#   GROUP BY application_measures.application_id
-#   ORDER BY applications.afm, application_measures.application_id
-#   """
-#   df4 = pd.read_sql(query4, con=engine)
-
-#   query5 = f"""
-#   SELECT
-#     parcel_costs.from_parcels,
-#     parcel_costs.to_parcels,
-#     parcel_costs.cost,
-#     periods.year AS year
-#   FROM parcel_costs
-#   JOIN periods ON parcel_costs.period_id=periods.id
-#   WHERE periods.id = {period_id}
-#   ORDER BY parcel_costs.from_parcels
-#   """
-#   df5 = pd.read_sql(query5, con=engine)
-#   cols=['from_parcels','to_parcels','cost']
-#   parcel_costs = df5[cols].values.tolist()
-
-# # Βάζεις όλα τα df σε λίστα
-#   dfs = [df1, df2, df3, df4]
-
-# # Κάνεις merge με outer join πάνω στο 'afm'
-#   df_final = reduce(lambda left, right: pd.merge(left, right, on="afm", how="outer"), dfs)
-
-#   df_final = df_final.fillna(0)
-
-# ## Εφαρμογή στο df
-#   df_final['final_cost'] = df_final.apply(lambda row: compute_cost(row, parcel_costs), axis=1)
-
-# ## Προαιρετικά: καθάρισε NaN σε αριθμητικές στήλες για να βγουν σωστά τα sums
-#   num_cols = ['num_parcels', 'num_stables', 'num_equals', 'final_cost']
-#   df_final[num_cols] = df_final[num_cols].apply(pd.to_numeric, errors='coerce').fillna(0)
-
-  grouped = (
+  # group df1
+  grouped1 = (
     df1.groupby(['cpv_code', 'cpv_descr'])
       .agg(
         total_aa = (
@@ -154,7 +95,27 @@ def get_aitimata_cpv_stats(period_id):
       .reset_index()
   )
 
-  stats = grouped.to_json(orient="records", force_ascii=False)
+  # group df2
+  grouped2 = (
+    df2.groupby(['cpv_code', 'cpv_descr'])
+      .agg(
+       total_diag = ('net_total_cost', lambda s: s[df2.loc[s.index, 'status_id'] == 2].sum()),
+       total_other = ('net_total_cost', lambda s: s[df2.loc[s.index, 'status_id'] == 3].sum()),
+       total_rejected = ('net_total_cost', lambda s: s[df2.loc[s.index, 'status_id'] == 4].sum())
+      )
+      .reset_index()
+  )
+
+  # merge
+  merged = (
+    grouped1
+    .merge(grouped2, on=['cpv_code', 'cpv_descr'], how='inner', suffixes=('_g1', '_g2'))
+  )
+  merged['sum_total_diag'] = merged['total_diag_g1'] + merged['total_diag_g2']
+  merged['sum_total_other'] = merged['total_other_g1'] + merged['total_other_g2']
+  merged['sum_total_rejected'] = merged['total_rejected_g1'] + merged['total_rejected_g2']
+
+  stats = merged.to_json(orient="records", force_ascii=False)
 
   # Μετατροπή σε Python object (λίστα από dicts)
   stats = json.loads(stats)
