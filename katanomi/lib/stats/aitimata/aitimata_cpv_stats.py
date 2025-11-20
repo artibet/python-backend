@@ -54,6 +54,7 @@ def get_aitimata_cpv_stats(period_id):
   JOIN cpvs ON cpvs.id = arecs.admin_cpv_id
   WHERE aitimata.period_id = :period_id 
   AND aitimata.status_id > 100 
+  AND arecs.in_cpv_sum = 1
   """)
 
   df1=pd.read_sql(query1, con=engine, params={'period_id': period_id})
