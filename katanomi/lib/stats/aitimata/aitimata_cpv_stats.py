@@ -110,8 +110,9 @@ def get_aitimata_cpv_stats(period_id):
   # merge
   merged = (
     grouped1
-    .merge(grouped2, on=['cpv_code', 'cpv_descr'], how='inner', suffixes=('_g1', '_g2'))
+    .merge(grouped2, on=['cpv_code', 'cpv_descr'], how='outer', suffixes=('_g1', '_g2'))
   )
+  merged.fillna(0)
   merged['total_aa'] = merged['total_aa_g1'] + merged['total_aa_g2']
   merged['total_diag'] = merged['total_diag_g1'] + merged['total_diag_g2']
   merged['total_other'] = merged['total_other_g1'] + merged['total_other_g2']
