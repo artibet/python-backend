@@ -75,7 +75,7 @@ def get_aitimata_cpv_stats(period_id):
   """)
 
   df2=pd.read_sql(query2, con=engine, params={'period_id': period_id})  
-  
+
   # group df1
   grouped1 = (
     df1.groupby(['cpv_code', 'cpv_descr'])
@@ -112,12 +112,13 @@ def get_aitimata_cpv_stats(period_id):
     grouped1
     .merge(grouped2, on=['cpv_code', 'cpv_descr'], how='outer', suffixes=('_g1', '_g2'))
   )
-  merged.fillna(0)
+  merged = merged.fillna(0)
   merged['total_aa'] = merged['total_aa_g1'] + merged['total_aa_g2']
   merged['total_diag'] = merged['total_diag_g1'] + merged['total_diag_g2']
   merged['total_other'] = merged['total_other_g1'] + merged['total_other_g2']
   merged['total_rejected'] = merged['total_rejected_g1'] + merged['total_rejected_g2']
   merged = merged.drop(columns=['total_aa_g1', 'total_diag_g1', 'total_other_g1', 'total_rejected_g1','total_aa_g2', 'total_diag_g2', 'total_other_g2', 'total_rejected_g2'])
+  
   stats = merged.to_json(orient="records", force_ascii=False)
 
   # Μετατροπή σε Python object (λίστα από dicts)
