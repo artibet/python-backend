@@ -99,6 +99,7 @@ def get_aitimata_cpv_stats(period_id):
   grouped2 = (
     df2.groupby(['cpv_code', 'cpv_descr'])
       .agg(
+       total_aa = ('net_total_cost', lambda _: 0),
        total_diag = ('net_total_cost', lambda s: s[df2.loc[s.index, 'status_id'] == 2].sum()),
        total_other = ('net_total_cost', lambda s: s[df2.loc[s.index, 'status_id'] == 3].sum()),
        total_rejected = ('net_total_cost', lambda s: s[df2.loc[s.index, 'status_id'] == 4].sum())
@@ -111,10 +112,11 @@ def get_aitimata_cpv_stats(period_id):
     grouped1
     .merge(grouped2, on=['cpv_code', 'cpv_descr'], how='inner', suffixes=('_g1', '_g2'))
   )
-  merged['sum_total_diag'] = merged['total_diag_g1'] + merged['total_diag_g2']
-  merged['sum_total_other'] = merged['total_other_g1'] + merged['total_other_g2']
-  merged['sum_total_rejected'] = merged['total_rejected_g1'] + merged['total_rejected_g2']
-
+  merged['total_aa'] = merged['total_aa_g1'] + merged['total_aa_g2']
+  merged['total_diag'] = merged['total_diag_g1'] + merged['total_diag_g2']
+  merged['total_other'] = merged['total_other_g1'] + merged['total_other_g2']
+  merged['total_rejected'] = merged['total_rejected_g1'] + merged['total_rejected_g2']
+  merged = merged.drop(columns=['total_aa_g1', 'total_diag_g1', 'total_other_g1', 'total_rejected_g1','total_aa_g2', 'total_diag_g2', 'total_other_g2', 'total_rejected_g2'])
   stats = merged.to_json(orient="records", force_ascii=False)
 
   # Μετατροπή σε Python object (λίστα από dicts)
